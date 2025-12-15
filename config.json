@@ -1,0 +1,169 @@
+{
+  "business": {
+    "name": "Agent Forge",
+    "tagline": "Build AI Agents Without Code",
+    "url": "https://agentforge.ai",
+    "support_email": "support@agentforge.ai"
+  },
+  "pricing": {
+    "currency": "USD",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": 49,
+        "interval": "month",
+        "agents": 1,
+        "features": [
+          "1 AI Agent",
+          "1,000 conversations/month",
+          "Basic analytics",
+          "Email support",
+          "Website widget"
+        ]
+      },
+      "professional": {
+        "name": "Professional",
+        "price": 149,
+        "interval": "month",
+        "agents": 5,
+        "features": [
+          "5 AI Agents",
+          "10,000 conversations/month",
+          "Advanced analytics",
+          "Priority support",
+          "All integrations",
+          "Custom branding",
+          "API access"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": 499,
+        "interval": "month",
+        "agents": -1,
+        "features": [
+          "Unlimited AI Agents",
+          "Unlimited conversations",
+          "Enterprise analytics",
+          "Dedicated support",
+          "Custom integrations",
+          "White-label option",
+          "SLA guarantee",
+          "On-premise option"
+        ]
+      }
+    }
+  },
+  "marketing": {
+    "enabled": true,
+    "post_frequency": "daily",
+    "channels": ["blog", "twitter", "linkedin", "email"],
+    "topics": [
+      "AI agents for business",
+      "Customer support automation",
+      "Sales chatbots",
+      "No-code AI tools",
+      "Conversational AI"
+    ]
+  },
+  "sales": {
+    "enabled": true,
+    "auto_qualify": true,
+    "qualification_criteria": {
+      "budget_min": 49,
+      "use_cases": ["support", "sales", "lead_gen", "booking", "faq"],
+      "company_sizes": ["startup", "smb", "enterprise"]
+    }
+  },
+  "support": {
+    "enabled": true,
+    "auto_resolve": true,
+    "escalation_threshold": 3,
+    "business_hours": {
+      "timezone": "America/Chicago",
+      "start": "09:00",
+      "end": "17:00"
+    }
+  },
+  "deployment": {
+    "default_target": "cloudflare",
+    "supported_targets": ["cloudflare", "vercel", "aws_lambda", "docker", "railway"],
+    "auto_deploy": true
+  },
+  "ai": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "max_tokens": 1000,
+    "temperature": 0.7
+  },
+  "integrations": {
+    "supported": [
+      "slack",
+      "discord",
+      "whatsapp",
+      "zapier",
+      "hubspot",
+      "salesforce",
+      "intercom",
+      "zendesk"
+    ]
+  },
+  "control_hub": {
+    "enabled": true,
+    "heartbeat_interval": 30,
+    "log_levels": ["error", "warn", "info"]
+  },
+  "collaboration": {
+    "enabled": true,
+    "message_timeout": 30,
+    "max_queue_size": 1000,
+    "handoff_timeout": 60,
+    "auto_escalate": true,
+    "broadcast_insights": true
+  },
+  "learning": {
+    "enabled": true,
+    "evolution_interval_hours": 1,
+    "min_samples_for_evolution": 10,
+    "exploration_rate": 0.2,
+    "outcome_retention_days": 90,
+    "ab_testing": {
+      "enabled": true,
+      "min_samples_per_variant": 20,
+      "significance_threshold": 0.95
+    },
+    "strategies": {
+      "auto_evolve": true,
+      "max_active_per_type": 5,
+      "retirement_threshold": 0.3
+    }
+  },
+  "workforce": {
+    "enabled": true,
+    "scaling_interval": 30,
+    "thresholds": {
+      "support_queue_threshold": 20,
+      "sales_queue_threshold": 15,
+      "marketing_queue_threshold": 10,
+      "build_queue_threshold": 5
+    },
+    "performance": {
+      "max_response_time_ms": 5000,
+      "max_error_rate": 0.05
+    },
+    "limits": {
+      "max_workers_per_type": 10,
+      "max_total_workers": 50,
+      "min_workers_per_type": 0
+    },
+    "timing": {
+      "scale_up_cooldown_seconds": 60,
+      "scale_down_cooldown_seconds": 300,
+      "idle_threshold_seconds": 300
+    },
+    "scaling": {
+      "scale_up_increment": 2,
+      "scale_down_increment": 1
+    }
+  }
+}
