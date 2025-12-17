@@ -10,48 +10,78 @@
     "plans": {
       "starter": {
         "name": "Starter",
-        "price": 49,
+        "price": 79,
         "interval": "month",
         "agents": 1,
+        "voice_agents": 1,
+        "voice_minutes": 100,
+        "phone_numbers": 1,
+        "concurrent_calls": 1,
         "features": [
-          "1 AI Agent",
+          "1 AI Agent (text or voice)",
           "1,000 conversations/month",
+          "100 voice minutes/month",
+          "1 phone number included",
           "Basic analytics",
           "Email support",
-          "Website widget"
+          "Website widget",
+          "Voice widget"
         ]
       },
       "professional": {
         "name": "Professional",
-        "price": 149,
+        "price": 249,
         "interval": "month",
         "agents": 5,
+        "voice_agents": 3,
+        "voice_minutes": 500,
+        "phone_numbers": 5,
+        "concurrent_calls": 5,
         "features": [
-          "5 AI Agents",
+          "5 AI Agents (text or voice)",
           "10,000 conversations/month",
+          "500 voice minutes/month",
+          "5 phone numbers included",
           "Advanced analytics",
           "Priority support",
           "All integrations",
           "Custom branding",
-          "API access"
+          "API access",
+          "Batch calling campaigns",
+          "Post-call analysis"
         ]
       },
       "enterprise": {
         "name": "Enterprise",
-        "price": 499,
+        "price": 799,
         "interval": "month",
         "agents": -1,
+        "voice_agents": -1,
+        "voice_minutes": 2000,
+        "phone_numbers": -1,
+        "concurrent_calls": 20,
         "features": [
           "Unlimited AI Agents",
           "Unlimited conversations",
+          "2,000 voice minutes/month",
+          "Unlimited phone numbers",
+          "20 concurrent calls",
           "Enterprise analytics",
           "Dedicated support",
           "Custom integrations",
           "White-label option",
           "SLA guarantee",
-          "On-premise option"
+          "On-premise option",
+          "Custom TTS voice cloning"
         ]
       }
+    },
+    "voice_overage": {
+      "per_minute_inbound": 0.05,
+      "per_minute_outbound": 0.08,
+      "sms_per_message": 0.01,
+      "additional_number_local": 2.00,
+      "additional_number_toll_free": 5.00
     }
   },
   "marketing": {
@@ -105,8 +135,80 @@
       "hubspot",
       "salesforce",
       "intercom",
-      "zendesk"
+      "zendesk",
+      "calcom",
+      "twilio",
+      "telnyx"
     ]
+  },
+  "voice": {
+    "enabled": true,
+    "providers": {
+      "telephony": "twilio",
+      "asr": "deepgram",
+      "tts": "elevenlabs"
+    },
+    "telephony": {
+      "provider": "twilio",
+      "webhook_base_url": "",
+      "pricing": {
+        "inbound_per_minute_cents": 5,
+        "outbound_per_minute_cents": 8,
+        "local_number_monthly_cents": 200,
+        "toll_free_monthly_cents": 500
+      }
+    },
+    "asr": {
+      "provider": "deepgram",
+      "model": "nova-2",
+      "default_language": "en",
+      "supported_languages": ["en", "es", "fr", "de", "it", "pt", "nl", "ja", "ko", "zh"],
+      "endpointing_ms": 300,
+      "utterance_end_ms": 1000,
+      "interim_results": true,
+      "punctuate": true,
+      "smart_format": true
+    },
+    "tts": {
+      "provider": "elevenlabs",
+      "default_voice": "EXAVITQu4vr4xnSDxMaL",
+      "default_model": "eleven_turbo_v2",
+      "output_format": "pcm_24000",
+      "default_speed": 1.0,
+      "default_stability": 0.5,
+      "default_similarity_boost": 0.75
+    },
+    "pipeline": {
+      "latency_target_ms": 600,
+      "max_call_duration_seconds": 3600,
+      "silence_timeout_seconds": 10,
+      "backchannel": {
+        "enabled": true,
+        "phrases": ["uh-huh", "I see", "got it", "okay", "right"],
+        "frequency": 0.3
+      },
+      "interruption": {
+        "enabled": true,
+        "sensitivity": 0.5
+      }
+    },
+    "campaigns": {
+      "max_concurrent_calls_per_campaign": 50,
+      "default_retry_delay_minutes": 60,
+      "max_retry_attempts": 3,
+      "calls_per_minute_limit": 60
+    },
+    "analytics": {
+      "post_call_analysis": true,
+      "sentiment_analysis": true,
+      "transcript_storage_days": 90,
+      "recording_storage_days": 30
+    },
+    "limits": {
+      "max_concurrent_calls_starter": 1,
+      "max_concurrent_calls_professional": 5,
+      "max_concurrent_calls_enterprise": 20
+    }
   },
   "control_hub": {
     "enabled": true,
