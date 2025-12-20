@@ -1,0 +1,24 @@
+# Agent Forge - Robots.txt
+# https://agentforge.ai
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Allow Googlebot specifically
+User-agent: Googlebot
+Allow: /
+
+# Allow Bingbot
+User-agent: Bingbot
+Allow: /
+
+# Disallow private/authenticated routes
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /auth/
+Disallow: /checkout/
+Disallow: /billing/
+
+# Sitemap location
+Sitemap: https://agentforge.ai/sitemap.xml

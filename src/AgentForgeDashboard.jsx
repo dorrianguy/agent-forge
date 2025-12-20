@@ -9,8 +9,13 @@ import {
   Flame, Bot, MessageSquare, BarChart3, Star, Plus, X,
   Zap, Globe, Shield, Rocket, Settings, ChevronRight,
   Activity, TrendingUp, Clock, Users, Sparkles, Copy,
-  Check, ExternalLink, Play, Pause, MoreVertical
+  Check, ExternalLink, Play, Pause, MoreVertical, Phone
 } from 'lucide-react';
+
+// Import voice components
+import VoiceAgentCard from './components/VoiceAgentCard';
+import VoiceAgentBuilder from './components/VoiceAgentBuilder';
+import ActiveCallsPanel from './components/ActiveCallsPanel';
 
 // Animation variants
 const fadeInUp = {
@@ -115,6 +120,13 @@ export default function AgentForgeDashboard() {
   const [buildStatus, setBuildStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('agents');
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [isCreatingVoiceAgent, setIsCreatingVoiceAgent] = useState(false);
+  const [voiceAgents, setVoiceAgents] = useState([]);
+  const [voiceStats, setVoiceStats] = useState({
+    totalCallsToday: 0,
+    activeCalls: 0,
+    avgDuration: '0m 0s'
+  });
 
   // Animated stats
   const animatedAgents = useAnimatedCounter(stats.totalAgents, 800);
@@ -163,6 +175,34 @@ export default function AgentForgeDashboard() {
         activeConversations: 47,
         messagesThisMonth: 12543,
         satisfaction: 92
+      });
+
+      // Load voice agents mock data
+      setVoiceAgents([
+        {
+          id: 'voice-1',
+          name: 'Customer Support Line',
+          phoneNumber: '+1 (555) 123-4567',
+          status: 'active',
+          callsToday: 42,
+          avgDuration: '3m 24s',
+          satisfaction: 96
+        },
+        {
+          id: 'voice-2',
+          name: 'Sales Hotline',
+          phoneNumber: '+1 (555) 987-6543',
+          status: 'active',
+          callsToday: 28,
+          avgDuration: '5m 12s',
+          satisfaction: 93
+        }
+      ]);
+
+      setVoiceStats({
+        totalCallsToday: 70,
+        activeCalls: 3,
+        avgDuration: '4m 18s'
       });
     }, 500);
 
@@ -258,11 +298,11 @@ export default function AgentForgeDashboard() {
               <div className="flex items-center gap-4">
                 {/* Navigation Tabs */}
                 <nav className="hidden md:flex items-center gap-1 bg-white/5 rounded-lg p-1">
-                  {['agents', 'analytics', 'settings'].map((tab) => (
+                  {['agents', 'voice', 'analytics', 'settings'].map((tab) => (
                     <motion.button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                         activeTab === tab
                           ? 'bg-white/10 text-white'
                           : 'text-white/60 hover:text-white'
@@ -270,6 +310,7 @@ export default function AgentForgeDashboard() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
+                      {tab === 'voice' && <Phone className="w-4 h-4" />}
                       {tab.charAt(0).toUpperCase() + tab.slice(1)}
                     </motion.button>
                   ))}
@@ -290,46 +331,49 @@ export default function AgentForgeDashboard() {
         </motion.header>
 
         <main className="max-w-7xl mx-auto px-6 py-8">
-          {/* Stats Cards */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <StatCard
-              title="Total Agents"
-              value={animatedAgents}
-              icon={Bot}
-              color="blue"
-              trend="+2 this week"
-              delay={0}
-            />
-            <StatCard
-              title="Active Conversations"
-              value={animatedConversations}
-              icon={MessageSquare}
-              color="green"
-              trend="12% increase"
-              delay={0.1}
-            />
-            <StatCard
-              title="Messages This Month"
-              value={animatedMessages.toLocaleString()}
-              icon={BarChart3}
-              color="purple"
-              trend="+3,421 today"
-              delay={0.2}
-            />
-            <StatCard
-              title="Satisfaction Rate"
-              value={`${animatedSatisfaction}%`}
-              icon={Star}
-              color="yellow"
-              trend="Above target"
-              delay={0.3}
-            />
-          </motion.div>
+          {/* Conditional content based on active tab */}
+          {activeTab === 'agents' && (
+            <>
+              {/* Stats Cards */}
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <StatCard
+                  title="Total Agents"
+                  value={animatedAgents}
+                  icon={Bot}
+                  color="blue"
+                  trend="+2 this week"
+                  delay={0}
+                />
+                <StatCard
+                  title="Active Conversations"
+                  value={animatedConversations}
+                  icon={MessageSquare}
+                  color="green"
+                  trend="12% increase"
+                  delay={0.1}
+                />
+                <StatCard
+                  title="Messages This Month"
+                  value={animatedMessages.toLocaleString()}
+                  icon={BarChart3}
+                  color="purple"
+                  trend="+3,421 today"
+                  delay={0.2}
+                />
+                <StatCard
+                  title="Satisfaction Rate"
+                  value={`${animatedSatisfaction}%`}
+                  icon={Star}
+                  color="yellow"
+                  trend="Above target"
+                  delay={0.3}
+                />
+              </motion.div>
 
           {/* Quick Actions */}
           <motion.div
@@ -448,6 +492,143 @@ export default function AgentForgeDashboard() {
               ))}
             </div>
           </motion.div>
+            </>
+          )}
+
+          {/* Voice Tab Content */}
+          {activeTab === 'voice' && (
+            <>
+              {/* Voice Stats Cards */}
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <StatCard
+                  title="Total Calls Today"
+                  value={voiceStats.totalCallsToday}
+                  icon={Phone}
+                  color="blue"
+                  trend="+12 from yesterday"
+                  delay={0}
+                />
+                <StatCard
+                  title="Active Calls"
+                  value={voiceStats.activeCalls}
+                  icon={Activity}
+                  color="green"
+                  trend="Live now"
+                  delay={0.1}
+                />
+                <StatCard
+                  title="Avg Duration"
+                  value={voiceStats.avgDuration}
+                  icon={Clock}
+                  color="purple"
+                  trend="+30s today"
+                  delay={0.2}
+                />
+              </motion.div>
+
+              {/* Active Calls Panel */}
+              <motion.div
+                className="mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ActiveCallsPanel />
+              </motion.div>
+
+              {/* Voice Agents Section */}
+              <motion.div
+                className="mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Voice Agents</h2>
+                    <p className="text-white/50 text-sm mt-1">Manage your AI voice assistants</p>
+                  </div>
+                  <motion.button
+                    onClick={() => setIsCreatingVoiceAgent(true)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl text-white font-semibold flex items-center gap-2 shadow-lg shadow-orange-500/25"
+                    whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(249, 115, 22, 0.3)" }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Voice Agent
+                  </motion.button>
+                </div>
+
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {voiceAgents.map((agent, index) => (
+                    <VoiceAgentCard
+                      key={agent.id}
+                      agent={agent}
+                      index={index}
+                    />
+                  ))}
+
+                  {/* Add New Voice Agent Card */}
+                  <motion.button
+                    variants={fadeInUp}
+                    onClick={() => setIsCreatingVoiceAgent(true)}
+                    className="p-6 rounded-2xl border-2 border-dashed border-white/10 hover:border-orange-500/50 hover:bg-orange-500/5 transition-all flex flex-col items-center justify-center min-h-[200px] group"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <motion.div
+                      className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mb-3 group-hover:bg-orange-500/20 transition-colors"
+                      whileHover={{ rotate: 90 }}
+                      transition={{ type: "spring" }}
+                    >
+                      <Plus className="w-6 h-6 text-white/40 group-hover:text-orange-400 transition-colors" />
+                    </motion.div>
+                    <span className="text-white/40 font-medium group-hover:text-white/70 transition-colors">Create Voice Agent</span>
+                  </motion.button>
+                </motion.div>
+              </motion.div>
+            </>
+          )}
+
+          {/* Analytics Tab Placeholder */}
+          {activeTab === 'analytics' && (
+            <motion.div
+              className="flex items-center justify-center h-96"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="text-center">
+                <BarChart3 className="w-16 h-16 text-white/20 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Analytics Coming Soon</h3>
+                <p className="text-white/50">Advanced analytics and insights will be available here.</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Settings Tab Placeholder */}
+          {activeTab === 'settings' && (
+            <motion.div
+              className="flex items-center justify-center h-96"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="text-center">
+                <Settings className="w-16 h-16 text-white/20 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Settings Coming Soon</h3>
+                <p className="text-white/50">Configure your Agent Forge workspace here.</p>
+              </div>
+            </motion.div>
+          )}
         </main>
       </div>
 
@@ -737,6 +918,20 @@ export default function AgentForgeDashboard() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Voice Agent Builder Modal */}
+      <AnimatePresence>
+        {isCreatingVoiceAgent && (
+          <VoiceAgentBuilder
+            isOpen={isCreatingVoiceAgent}
+            onClose={() => setIsCreatingVoiceAgent(false)}
+            onAgentCreated={(newAgent) => {
+              setVoiceAgents(prev => [...prev, newAgent]);
+              setIsCreatingVoiceAgent(false);
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

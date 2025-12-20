@@ -6,6 +6,7 @@ import { Check, Flame, Zap, Crown, ArrowRight, Loader2, AlertCircle } from 'luci
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUser } from '@/lib/auth';
+import config from '@/config.json';
 
 interface Plan {
   name: string;
@@ -46,28 +47,29 @@ function PricingContent() {
       setIsAuthenticated(false);
     }
 
-    // Load plans (static for now, could be from API later)
+    // Load plans from config.json (single source of truth)
+    const configPlans = config.pricing.plans;
     setPlans({
       starter: {
-        name: 'Starter',
-        price: 49,
-        interval: 'month',
-        agents: 1,
-        features: ['1 AI Agent', '1,000 conversations/month', 'Basic analytics', 'Email support', 'Website widget']
+        name: configPlans.starter.name,
+        price: configPlans.starter.price,
+        interval: configPlans.starter.interval,
+        agents: configPlans.starter.agents,
+        features: configPlans.starter.features
       },
       professional: {
-        name: 'Professional',
-        price: 149,
-        interval: 'month',
-        agents: 5,
-        features: ['5 AI Agents', '10,000 conversations/month', 'Advanced analytics', 'Priority support', 'All integrations', 'Custom branding', 'API access']
+        name: configPlans.professional.name,
+        price: configPlans.professional.price,
+        interval: configPlans.professional.interval,
+        agents: configPlans.professional.agents,
+        features: configPlans.professional.features
       },
       enterprise: {
-        name: 'Enterprise',
-        price: 499,
-        interval: 'month',
-        agents: -1,
-        features: ['Unlimited AI Agents', 'Unlimited conversations', 'Enterprise analytics', 'Dedicated support', 'Custom integrations', 'White-label option', 'SLA guarantee', 'On-premise option']
+        name: configPlans.enterprise.name,
+        price: configPlans.enterprise.price,
+        interval: configPlans.enterprise.interval,
+        agents: configPlans.enterprise.agents,
+        features: configPlans.enterprise.features
       }
     });
     setLoading(false);

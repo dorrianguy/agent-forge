@@ -7,10 +7,16 @@ import {
   BarChart3, TrendingUp, TrendingDown, Users, Calendar,
   Play, Pause, Settings, ChevronRight, Plus, X,
   Check, Copy, Download, Filter, Search, Flame,
-  ArrowLeft, ExternalLink, MessageSquare, Code2, GitBranch
+  ArrowLeft, ExternalLink, MessageSquare, Code2, GitBranch, Radio
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+// Import the actual voice components
+import VoiceAgentCard from '@/src/components/voice/VoiceAgentCard';
+import ActiveCallsPanel from '@/src/components/voice/ActiveCallsPanel';
+import CallHistoryTable from '@/src/components/voice/CallHistoryTable';
+import PhoneNumberManager from '@/src/components/voice/PhoneNumberManager';
 
 // Animation variants
 const fadeInUp = {
@@ -56,9 +62,40 @@ const mockPhoneNumbers = [
   { id: '2', number: '+1 888-0002', name: 'Sales Outbound', agent: 'Sales Agent', calls: 355, status: 'active' },
 ];
 
+// Mock voice agents data
+const mockVoiceAgents = [
+  {
+    id: 'agent-1',
+    name: 'Support Bot',
+    type: 'customer_support',
+    status: 'live',
+    phoneNumber: '+1 (888) 555-0001',
+    stats: { inboundCalls: 892, outboundCalls: 234, activeCalls: 2 },
+    lastActive: '2 mins ago'
+  },
+  {
+    id: 'agent-2',
+    name: 'Sales Assistant',
+    type: 'sales_outbound',
+    status: 'live',
+    phoneNumber: '+1 (888) 555-0002',
+    stats: { inboundCalls: 355, outboundCalls: 1203, activeCalls: 0 },
+    lastActive: '15 mins ago'
+  },
+  {
+    id: 'agent-3',
+    name: 'Lead Qualifier',
+    type: 'lead_qualification',
+    status: 'offline',
+    phoneNumber: '+1 (888) 555-0003',
+    stats: { inboundCalls: 127, outboundCalls: 89, activeCalls: 0 },
+    lastActive: '2 hours ago'
+  }
+];
+
 export default function VoiceDashboardPage() {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<'overview' | 'calls' | 'campaigns' | 'numbers'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'agents' | 'active' | 'calls' | 'campaigns' | 'numbers'>('overview');
   const [selectedCall, setSelectedCall] = useState<typeof mockRecentCalls[0] | null>(null);
   const [dateRange, setDateRange] = useState('7d');
 
@@ -158,9 +195,11 @@ export default function VoiceDashboardPage() {
           </div>
 
           {/* Section Tabs */}
-          <nav className="flex items-center gap-1 mt-4 -mb-px">
+          <nav className="flex items-center gap-1 mt-4 -mb-px overflow-x-auto">
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
+              { id: 'agents', label: 'Voice Agents', icon: Mic },
+              { id: 'active', label: 'Active Calls', icon: Radio },
               { id: 'calls', label: 'Call History', icon: PhoneCall },
               { id: 'campaigns', label: 'Campaigns', icon: Users },
               { id: 'numbers', label: 'Phone Numbers', icon: Phone },
@@ -339,75 +378,66 @@ export default function VoiceDashboardPage() {
           </motion.div>
         )}
 
-        {/* Call History Section */}
-        {activeSection === 'calls' && (
+        {/* Voice Agents Section - Using VoiceAgentCard component */}
+        {activeSection === 'agents' && (
           <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Call History</h2>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search calls..."
-                    className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-purple-500/50 w-64"
-                  />
-                </div>
-                <button className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white/70 flex items-center gap-2 hover:bg-white/10 transition">
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </button>
-                <button className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white/70 flex items-center gap-2 hover:bg-white/10 transition">
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
+              <div>
+                <h2 className="text-xl font-bold">Voice Agents</h2>
+                <p className="text-white/50 text-sm mt-1">Manage your AI voice agents</p>
               </div>
+              <Link href="/build/voice">
+                <motion.button
+                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg text-white font-medium flex items-center gap-2 shadow-lg shadow-purple-500/25"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Agent
+                </motion.button>
+              </Link>
             </div>
 
-            <motion.div variants={fadeInUp} className="rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">Direction</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">From</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">To</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">Duration</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">Outcome</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">Sentiment</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-white/50 uppercase">Time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {mockRecentCalls.map((call) => (
-                    <tr key={call.id} className="hover:bg-white/5 transition cursor-pointer" onClick={() => setSelectedCall(call)}>
-                      <td className="px-5 py-4">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          call.direction === 'inbound' ? 'bg-green-500/20' : 'bg-blue-500/20'
-                        }`}>
-                          {call.direction === 'inbound' ? (
-                            <PhoneCall className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <PhoneOff className="w-4 h-4 text-blue-400" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-white">{call.from}</td>
-                      <td className="px-5 py-4 text-sm text-white/70">{call.to}</td>
-                      <td className="px-5 py-4 text-sm text-white">{formatDuration(call.duration)}</td>
-                      <td className="px-5 py-4">{getOutcomeBadge(call.outcome)}</td>
-                      <td className="px-5 py-4">
-                        <span className={`text-sm ${getSentimentColor(call.sentiment)}`}>
-                          {call.sentiment > 0 ? `${(call.sentiment * 100).toFixed(0)}%` : '—'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-white/50">
-                        {call.timestamp.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              variants={staggerContainer}
+            >
+              {mockVoiceAgents.map((agent, index) => (
+                <VoiceAgentCard
+                  key={agent.id}
+                  agent={agent}
+                  index={index}
+                  onClick={() => router.push(`/dashboard/voice/${agent.id}`)}
+                />
+              ))}
             </motion.div>
+          </motion.div>
+        )}
+
+        {/* Active Calls Section - Using ActiveCallsPanel component */}
+        {activeSection === 'active' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="mb-6">
+              <h2 className="text-xl font-bold">Active Calls</h2>
+              <p className="text-white/50 text-sm mt-1">Real-time call monitoring</p>
+            </div>
+            <ActiveCallsPanel
+              agentId="all"
+              onCallEnd={(callId: string) => console.log('Call ended:', callId)}
+            />
+          </motion.div>
+        )}
+
+        {/* Call History Section - Using CallHistoryTable component */}
+        {activeSection === 'calls' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <CallHistoryTable agentId="all" />
           </motion.div>
         )}
 
@@ -492,70 +522,14 @@ export default function VoiceDashboardPage() {
           </motion.div>
         )}
 
-        {/* Phone Numbers Section */}
+        {/* Phone Numbers Section - Using PhoneNumberManager component */}
         {activeSection === 'numbers' && (
-          <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Phone Numbers</h2>
-              <motion.button
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg text-white font-medium flex items-center gap-2 shadow-lg shadow-purple-500/25"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-4 h-4" />
-                Get New Number
-              </motion.button>
-            </div>
-
-            <div className="grid gap-4">
-              {mockPhoneNumbers.map((num) => (
-                <motion.div
-                  key={num.id}
-                  variants={fadeInUp}
-                  className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-purple-500/30 transition cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                        <Phone className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{num.number}</h3>
-                        <p className="text-sm text-white/50">{num.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <p className="text-white font-medium">{num.calls.toLocaleString()}</p>
-                        <p className="text-xs text-white/50">total calls</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-purple-400 font-medium">{num.agent}</p>
-                        <p className="text-xs text-white/50">connected agent</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm">
-                        Active
-                      </span>
-                      <button className="p-2 hover:bg-white/10 rounded-lg transition">
-                        <Settings className="w-4 h-4 text-white/60" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-
-              {/* Add Number Card */}
-              <motion.div
-                variants={fadeInUp}
-                className="p-8 rounded-2xl border-2 border-dashed border-white/10 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex flex-col items-center justify-center cursor-pointer"
-              >
-                <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mb-3">
-                  <Plus className="w-6 h-6 text-white/40" />
-                </div>
-                <p className="text-white/60 font-medium">Get a new phone number</p>
-                <p className="text-white/40 text-sm">Starting at $2/month</p>
-              </motion.div>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="-mx-6 -my-8"
+          >
+            <PhoneNumberManager />
           </motion.div>
         )}
       </main>

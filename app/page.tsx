@@ -83,7 +83,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Sparkles className="w-4 h-4" />
-                  Build Free
+                  Start Building
                 </motion.button>
               </Link>
             </div>
@@ -105,7 +105,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm mb-8"
             >
               <Zap className="w-4 h-4" />
-              No credit card required - Build your first agent free
+              Build powerful AI agents in minutes
             </motion.div>
 
             <motion.h1
@@ -132,7 +132,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Bot className="w-5 h-5" />
-                  Start Building - It's Free
+                  Start Building
                   <ArrowRight className="w-5 h-5" />
                 </motion.button>
               </Link>
@@ -383,11 +383,10 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Bot className="w-5 h-5" />
-                  Start Building Free
+                  Start Building
                   <ArrowRight className="w-5 h-5" />
                 </motion.button>
               </Link>
-              <p className="text-white/60 text-sm mt-4">No credit card required</p>
             </div>
           </motion.div>
         </div>
