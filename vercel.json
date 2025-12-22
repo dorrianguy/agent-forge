@@ -1,4 +1,5 @@
 {
+  "alias": ["agent-forge.app"],
   "crons": [
     {
       "path": "/api/cron/weekly-summary",
