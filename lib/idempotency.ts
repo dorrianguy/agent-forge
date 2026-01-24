@@ -18,17 +18,18 @@ const processedEvents = new Map<string, ProcessedEvent>();
 const EVENT_TTL_MS = 24 * 60 * 60 * 1000;
 const EVENT_TTL_SECONDS = 24 * 60 * 60;
 
-// Upstash Redis client (lazy initialized)
-let redisClient: {
-  get: (key: string) => Promise<string | null>;
-  set: (key: string, value: string, options?: { ex?: number }) => Promise<void>;
-  setnx: (key: string, value: string) => Promise<number>;
-  expire: (key: string, seconds: number) => Promise<void>;
-} | null = null;
+// Upstash Redis client type (use unknown for flexibility, cast at call site)
+type UpstashRedisClient = {
+  get: <T = string>(key: string) => Promise<T | null>;
+  set: <T = string>(key: string, value: T, opts?: { ex?: number }) => Promise<unknown>;
+  setnx: <T = string>(key: string, value: T) => Promise<number>;
+  expire: (key: string, seconds: number) => Promise<number>;
+};
 
+let redisClient: UpstashRedisClient | null = null;
 let redisInitialized = false;
 
-async function getRedisClient() {
+async function getRedisClient(): Promise<UpstashRedisClient | null> {
   if (redisInitialized) return redisClient;
   redisInitialized = true;
 
@@ -38,7 +39,7 @@ async function getRedisClient() {
   if (redisUrl && redisToken) {
     try {
       const { Redis } = await import('@upstash/redis');
-      redisClient = new Redis({ url: redisUrl, token: redisToken });
+      redisClient = new Redis({ url: redisUrl, token: redisToken }) as UpstashRedisClient;
       logger.info('Idempotency tracker using Upstash Redis');
     } catch {
       logger.warn('Upstash Redis not available, using in-memory idempotency');

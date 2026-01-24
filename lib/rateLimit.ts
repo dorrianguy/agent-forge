@@ -15,15 +15,16 @@ interface RateLimitEntry {
 const MAX_ENTRIES = 10000;
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Upstash Redis client (lazy initialized)
-let redisClient: {
+// Upstash Redis client type (use flexible type, cast at call site)
+type UpstashRedisClient = {
   incr: (key: string) => Promise<number>;
-  expire: (key: string, seconds: number) => Promise<void>;
-} | null = null;
+  expire: (key: string, seconds: number) => Promise<number>;
+};
 
+let redisClient: UpstashRedisClient | null = null;
 let redisInitialized = false;
 
-async function getRedisClient() {
+async function getRedisClient(): Promise<UpstashRedisClient | null> {
   if (redisInitialized) return redisClient;
   redisInitialized = true;
 
@@ -33,7 +34,7 @@ async function getRedisClient() {
   if (redisUrl && redisToken) {
     try {
       const { Redis } = await import('@upstash/redis');
-      redisClient = new Redis({ url: redisUrl, token: redisToken });
+      redisClient = new Redis({ url: redisUrl, token: redisToken }) as UpstashRedisClient;
       logger.info('Rate limiter using Upstash Redis');
     } catch {
       logger.warn('Upstash Redis not available, using in-memory rate limiter');
