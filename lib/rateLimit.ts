@@ -48,16 +48,18 @@ async function getRedisClient(): Promise<UpstashRedisClient | null> {
 function cleanupInMemoryStore() {
   const now = Date.now();
 
-  for (const [key, entry] of rateLimitStore.entries()) {
+  // Use Array.from to avoid downlevelIteration issues
+  const entries = Array.from(rateLimitStore.entries());
+  for (const [key, entry] of entries) {
     if (entry.resetTime < now) {
       rateLimitStore.delete(key);
     }
   }
 
   if (rateLimitStore.size > MAX_ENTRIES) {
-    const entries = Array.from(rateLimitStore.entries());
-    entries.sort((a, b) => a[1].resetTime - b[1].resetTime);
-    const toRemove = entries.slice(0, entries.length - MAX_ENTRIES);
+    const sortedEntries = Array.from(rateLimitStore.entries());
+    sortedEntries.sort((a, b) => a[1].resetTime - b[1].resetTime);
+    const toRemove = sortedEntries.slice(0, sortedEntries.length - MAX_ENTRIES);
     for (const [key] of toRemove) {
       rateLimitStore.delete(key);
     }
