@@ -182,7 +182,9 @@ export async function POST(request: NextRequest) {
         }
 
         const plan = formatPlanName(subscription.metadata?.plan || 'subscription');
-        const endDate = new Date(subscription.current_period_end * 1000).toLocaleDateString();
+        // Use 'in' check for current_period_end (API version compatibility)
+        const periodEnd = 'current_period_end' in subscription ? (subscription.current_period_end as number) : Date.now() / 1000;
+        const endDate = new Date(periodEnd * 1000).toLocaleDateString();
 
         await sendSubscriptionCanceledEmail(customerDetails.email, customerDetails.name, plan, endDate);
         logger.info('Subscription canceled email sent', { email: customerDetails.email, eventId: event.id });
