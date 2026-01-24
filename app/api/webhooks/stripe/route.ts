@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
         }
 
         let plan = 'Subscription';
-        const subscriptionId = invoice.subscription;
+        // Use 'in' check for subscription property (API version compatibility)
+        const subscriptionId = 'subscription' in invoice ? invoice.subscription : null;
         if (subscriptionId && typeof subscriptionId === 'string') {
           try {
             const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -153,7 +154,8 @@ export async function POST(request: NextRequest) {
         let plan = 'Subscription';
         let retryDate: string | undefined;
 
-        const failedSubId = invoice.subscription;
+        // Use 'in' check for subscription property (API version compatibility)
+        const failedSubId = 'subscription' in invoice ? invoice.subscription : null;
         if (failedSubId && typeof failedSubId === 'string') {
           try {
             const subscription = await stripe.subscriptions.retrieve(failedSubId);
