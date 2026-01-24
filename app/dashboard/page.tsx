@@ -4,20 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Bot, MessageSquare, BarChart3, Star, Plus, X,
-  Settings, ChevronRight, Activity, Clock, Sparkles, Copy,
+  Settings, Activity, Clock, Sparkles, Copy,
   Check, Play, Pause, LogOut, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getUser, getProfile, getAgents, updateAgent, signOut, savePendingAgentToDb } from '@/lib/auth';
 import type { Profile, Agent } from '@/lib/supabase';
+import VoiceAssistant from '@/components/VoiceAssistant';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import StatCard from '@/components/dashboard/StatCard';
+import AgentCard from '@/components/dashboard/AgentCard';
+import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 // Animation variants
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
-
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
@@ -26,23 +26,10 @@ const staggerContainer = {
   }
 };
 
-// Animated counter hook
-function useAnimatedCounter(target: number, duration = 1000) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTime: number;
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      setCount(Math.floor(progress * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration]);
-
-  return count;
-}
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -82,8 +69,7 @@ export default function DashboardPage() {
 
         setProfile(profileData);
         setAgents(agentsData);
-      } catch (error) {
-        console.error('Failed to load data:', error);
+      } catch {
         router.push('/login?redirect=/dashboard');
       } finally {
         setLoading(false);
@@ -343,6 +329,15 @@ export default function DashboardPage() {
         </main>
       </div>
 
+      {/* Voice Assistant - wrapped in ErrorBoundary to prevent crashes */}
+      <ErrorBoundary>
+        <VoiceAssistant
+          userName={profile?.name?.split(' ')[0]}
+          onNavigate={(path) => router.push(path)}
+          autoGreet={true}
+        />
+      </ErrorBoundary>
+
       {/* Agent Detail Modal */}
       <AnimatePresence>
         {selectedAgent && (
@@ -453,32 +448,9 @@ export default function DashboardPage() {
   );
 }
 
-// Stat Card Component
-function StatCard({ title, value, icon: Icon, color, trend }: { title: string; value: string | number; icon: any; color: string; trend: string }) {
-  const colorMap: Record<string, string> = {
-    blue: 'from-blue-500 to-cyan-500',
-    green: 'from-green-500 to-emerald-500',
-    purple: 'from-purple-500 to-pink-500',
-    yellow: 'from-yellow-500 to-orange-500'
-  };
+// Note: StatCard and AgentCard are imported from @/components/dashboard/
 
-  return (
-    <motion.div className="relative p-5 rounded-2xl bg-white/5 border border-white/5 overflow-hidden group" variants={fadeInUp} whileHover={{ y: -4 }}>
-      <div className="relative">
-        <div className="flex items-center justify-between mb-3">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorMap[color]} flex items-center justify-center shadow-lg`}>
-            <Icon className="w-5 h-5 text-white" />
-          </div>
-          <div className="text-white/40 text-xs">{trend}</div>
-        </div>
-        <p className="text-3xl font-bold text-white mb-1">{value}</p>
-        <p className="text-sm text-white/50">{title}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-// Agent Card Component
+// Agent Card Component (local override for dashboard-specific styling)
 function AgentCard({ agent, onClick }: { agent: Agent; onClick: () => void }) {
   return (
     <motion.div

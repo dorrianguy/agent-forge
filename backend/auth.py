@@ -199,7 +199,17 @@ def require_admin():
 
 async def list_keys(auth: AuthResult = Depends(get_api_key_auth)) -> list:
     """List all API keys (admin only)"""
-    if not auth.authenticated or 'admin' not in auth.permissions:
+    if not auth.authenticated:
+        raise HTTPException(status_code=401, detail=auth.error or "Authentication required")
+
+    if auth.error == "Rate limit exceeded":
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Please try again later.",
+            headers={"Retry-After": str(_rate_limit_window)}
+        )
+
+    if 'admin' not in auth.permissions:
         raise HTTPException(status_code=403, detail="Admin access required")
 
     return db.list_api_keys()
@@ -207,7 +217,17 @@ async def list_keys(auth: AuthResult = Depends(get_api_key_auth)) -> list:
 
 async def revoke_key(key_id: str, auth: AuthResult = Depends(get_api_key_auth)) -> Dict:
     """Revoke an API key (admin only)"""
-    if not auth.authenticated or 'admin' not in auth.permissions:
+    if not auth.authenticated:
+        raise HTTPException(status_code=401, detail=auth.error or "Authentication required")
+
+    if auth.error == "Rate limit exceeded":
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Please try again later.",
+            headers={"Retry-After": str(_rate_limit_window)}
+        )
+
+    if 'admin' not in auth.permissions:
         raise HTTPException(status_code=403, detail="Admin access required")
 
     with db.get_connection() as conn:
@@ -228,9 +248,14 @@ def ensure_master_key():
     master_key = os.environ.get('AGENT_FORGE_MASTER_KEY')
 
     if not master_key:
-        # Generate and log master key if not set
+        if os.environ.get('NODE_ENV') == 'production' or os.environ.get('ENVIRONMENT') == 'production':
+            # In production, fail loudly - never auto-generate
+            logger.error('[Auth] CRITICAL: AGENT_FORGE_MASTER_KEY not set in production!')
+            raise RuntimeError('AGENT_FORGE_MASTER_KEY must be set in production')
+
+        # Development only: generate temporary key but NEVER log the actual key
         generated_key = secrets.token_urlsafe(32)
-        logger.warning(f'[Auth] No AGENT_FORGE_MASTER_KEY set. Generated temporary key: {generated_key}')
+        logger.warning('[Auth] No AGENT_FORGE_MASTER_KEY set - using temporary key (development only)')
         logger.warning('[Auth] Set AGENT_FORGE_MASTER_KEY environment variable for production!')
         os.environ['AGENT_FORGE_MASTER_KEY'] = generated_key
         return generated_key

@@ -204,14 +204,20 @@ export default function App() {
 
             {/* Position */}
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 14, color: '#94a3b8', marginBottom: 8 }}>
+              <label id="position-label" style={{ display: 'block', fontSize: 14, color: '#94a3b8', marginBottom: 8 }}>
                 Position
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                {['bottom-right', 'bottom-left', 'top-right', 'top-left'].map(pos => (
+              <div
+                role="radiogroup"
+                aria-labelledby="position-label"
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}
+              >
+                {(['bottom-right', 'bottom-left', 'top-right', 'top-left'] as const).map(pos => (
                   <button
                     key={pos}
-                    onClick={() => setConfig(prev => ({ ...prev, position: pos as any }))}
+                    role="radio"
+                    aria-checked={config.position === pos}
+                    onClick={() => setConfig(prev => ({ ...prev, position: pos }))}
                     style={{
                       padding: '10px 16px',
                       background: config.position === pos ? 'rgba(99, 102, 241, 0.3)' : 'rgba(15, 23, 42, 0.6)',
@@ -231,14 +237,20 @@ export default function App() {
 
             {/* Theme */}
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 14, color: '#94a3b8', marginBottom: 8 }}>
+              <label id="theme-label" style={{ display: 'block', fontSize: 14, color: '#94a3b8', marginBottom: 8 }}>
                 Theme
               </label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {['dark', 'light', 'auto'].map(theme => (
+              <div
+                role="radiogroup"
+                aria-labelledby="theme-label"
+                style={{ display: 'flex', gap: 8 }}
+              >
+                {(['dark', 'light', 'auto'] as const).map(theme => (
                   <button
                     key={theme}
-                    onClick={() => setConfig(prev => ({ ...prev, theme: theme as any }))}
+                    role="radio"
+                    aria-checked={config.theme === theme}
+                    onClick={() => setConfig(prev => ({ ...prev, theme: theme }))}
                     style={{
                       flex: 1,
                       padding: '10px 16px',

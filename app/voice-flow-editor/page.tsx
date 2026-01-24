@@ -6,7 +6,8 @@ import {
   Phone, MessageSquare, GitBranch, Play, Pause, Save,
   Plus, Trash2, Settings, Zap, ChevronLeft, Check,
   PhoneCall, PhoneOff, Volume2, Calendar, Send,
-  ArrowRight, Flame, X, Edit2, Copy, ExternalLink
+  ArrowRight, Flame, X, Edit2, Copy, ExternalLink,
+  LucideIcon
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,7 +36,7 @@ interface FlowEdge {
 }
 
 // Node type configurations
-const nodeTypes: Record<NodeType, { label: string; icon: any; color: string; description: string }> = {
+const nodeTypes: Record<NodeType, { label: string; icon: LucideIcon; color: string; description: string }> = {
   start: { label: 'Start', icon: Play, color: 'green', description: 'Call begins' },
   greeting: { label: 'Greeting', icon: Volume2, color: 'blue', description: 'Initial greeting message' },
   question: { label: 'Question', icon: MessageSquare, color: 'purple', description: 'Ask caller a question' },

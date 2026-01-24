@@ -196,7 +196,7 @@ export default function VoiceDashboardPage() {
 
           {/* Section Tabs */}
           <nav className="flex items-center gap-1 mt-4 -mb-px overflow-x-auto">
-            {[
+            {([
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'agents', label: 'Voice Agents', icon: Mic },
               { id: 'active', label: 'Active Calls', icon: Radio },
@@ -205,7 +205,7 @@ export default function VoiceDashboardPage() {
               { id: 'numbers', label: 'Phone Numbers', icon: Phone },
               { id: 'embed', label: 'Widget Embed', icon: Code2, href: '/dashboard/voice/embed' },
               { id: 'flows', label: 'Flow Editor', icon: GitBranch, href: '/voice-flow-editor' },
-            ].map((tab) => (
+            ] as const).map((tab) => (
               tab.href ? (
                 <Link
                   key={tab.id}
@@ -219,7 +219,7 @@ export default function VoiceDashboardPage() {
               ) : (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveSection(tab.id as any)}
+                  onClick={() => setActiveSection(tab.id)}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
                     activeSection === tab.id
                       ? 'border-purple-500 text-white'

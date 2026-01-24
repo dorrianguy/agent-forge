@@ -32,8 +32,9 @@ function LoginForm() {
         await signUp(email, password, name);
       }
       router.push(redirect);
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -45,8 +46,9 @@ function LoginForm() {
     try {
       await signInWithOAuth(provider);
       // OAuth redirects automatically, no need to handle
-    } catch (err: any) {
-      setError(err.message || `Failed to sign in with ${provider}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : `Failed to sign in with ${provider}`;
+      setError(message);
       setLoading(false);
     }
   };

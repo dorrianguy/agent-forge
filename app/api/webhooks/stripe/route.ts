@@ -6,26 +6,42 @@ import {
   sendPaymentFailedEmail,
   sendSubscriptionCanceledEmail,
 } from '@/lib/emailService';
+import { logger } from '@/lib/logger';
+import { shouldProcessEventAsync } from '@/lib/idempotency';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-11-17.clover',
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// Validate env vars at runtime instead of using non-null assertions
+function getStripeClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    logger.error('STRIPE_SECRET_KEY not configured');
+    return null;
+  }
+  return new Stripe(secretKey, {
+    apiVersion: '2025-11-17.clover',
+  });
+}
 
 // Helper to get customer details
-async function getCustomerDetails(customerId: string) {
+async function getCustomerDetails(
+  stripe: Stripe,
+  customerId: string
+): Promise<{ email: string; name: string } | null> {
   try {
     const customer = await stripe.customers.retrieve(customerId);
     if (customer.deleted) {
       return null;
     }
+    // Ensure email exists before proceeding
+    if (!customer.email) {
+      logger.warn('Customer has no email', { customerId });
+      return null;
+    }
     return {
-      email: customer.email || '',
+      email: customer.email,
       name: customer.name || 'there',
     };
   } catch (error) {
-    console.error('Error fetching customer:', error);
+    logger.error('Error fetching customer', error, { customerId });
     return null;
   }
 }
@@ -41,14 +57,23 @@ function formatPlanName(plan: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    logger.error('STRIPE_WEBHOOK_SECRET not configured');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
+
+  const stripe = getStripeClient();
+  if (!stripe) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
-    return NextResponse.json(
-      { error: 'Missing stripe-signature header' },
-      { status: 400 }
-    );
+    logger.warn('Missing stripe-signature header');
+    return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 });
   }
 
   let event: Stripe.Event;
@@ -56,64 +81,56 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
-    console.error('Webhook signature verification failed:', error);
-    return NextResponse.json(
-      { error: 'Invalid signature' },
-      { status: 400 }
-    );
+    logger.error('Webhook signature verification failed', error);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  // Idempotency check using Redis when available
+  const shouldProcess = await shouldProcessEventAsync(event.id);
+  if (!shouldProcess) {
+    logger.info('Duplicate event skipped', { eventId: event.id, eventType: event.type });
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-
-        // Get customer details
-        const customerDetails = await getCustomerDetails(session.customer as string);
+        const customerDetails = await getCustomerDetails(stripe, session.customer as string);
         if (!customerDetails) {
-          console.error('Could not retrieve customer details');
-          break;
+          // Return 500 so Stripe retries - this is a transient failure
+          logger.error('Could not retrieve customer details for checkout', undefined, { eventId: event.id });
+          return NextResponse.json({ error: 'Customer retrieval failed' }, { status: 500 });
         }
 
         const plan = session.metadata?.plan || 'unknown';
         const formattedPlan = formatPlanName(plan);
 
-        // Send welcome email
-        await sendWelcomeEmail(
-          customerDetails.email,
-          customerDetails.name,
-          formattedPlan
-        );
-
-        console.log(`Welcome email sent to ${customerDetails.email} for ${formattedPlan} plan`);
+        await sendWelcomeEmail(customerDetails.email, customerDetails.name, formattedPlan);
+        logger.info('Welcome email sent', { email: customerDetails.email, plan: formattedPlan, eventId: event.id });
         break;
       }
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-
-        // Get customer details
-        const customerDetails = await getCustomerDetails(invoice.customer as string);
+        const customerDetails = await getCustomerDetails(stripe, invoice.customer as string);
         if (!customerDetails) {
-          console.error('Could not retrieve customer details');
-          break;
+          logger.error('Could not retrieve customer details for invoice.paid', undefined, { eventId: event.id });
+          return NextResponse.json({ error: 'Customer retrieval failed' }, { status: 500 });
         }
 
-        // Get subscription to retrieve plan metadata
         let plan = 'Subscription';
-        const subscriptionId = (invoice as any).subscription;
-        if (subscriptionId) {
+        const subscriptionId = invoice.subscription;
+        if (subscriptionId && typeof subscriptionId === 'string') {
           try {
-            const subscription = await stripe.subscriptions.retrieve(
-              subscriptionId as string
-            );
-            plan = formatPlanName((subscription as any).metadata?.plan || 'subscription');
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            plan = formatPlanName(subscription.metadata?.plan || 'subscription');
           } catch (error) {
-            console.error('Error fetching subscription:', error);
+            logger.error('Error fetching subscription', error, { subscriptionId });
+            // Continue with default plan name, this is non-critical
           }
         }
 
-        // Send payment success email
         await sendPaymentSuccessEmail(
           customerDetails.email,
           customerDetails.name,
@@ -121,104 +138,75 @@ export async function POST(request: NextRequest) {
           plan,
           invoice.hosted_invoice_url || undefined
         );
-
-        console.log(`Payment success email sent to ${customerDetails.email}`);
+        logger.info('Payment success email sent', { email: customerDetails.email, eventId: event.id });
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-
-        // Get customer details
-        const customerDetails = await getCustomerDetails(invoice.customer as string);
+        const customerDetails = await getCustomerDetails(stripe, invoice.customer as string);
         if (!customerDetails) {
-          console.error('Could not retrieve customer details');
-          break;
+          logger.error('Could not retrieve customer details for payment_failed', undefined, { eventId: event.id });
+          return NextResponse.json({ error: 'Customer retrieval failed' }, { status: 500 });
         }
 
-        // Get subscription to retrieve plan metadata
         let plan = 'Subscription';
         let retryDate: string | undefined;
 
-        const failedSubId = (invoice as any).subscription;
-        if (failedSubId) {
+        const failedSubId = invoice.subscription;
+        if (failedSubId && typeof failedSubId === 'string') {
           try {
-            const subscription = await stripe.subscriptions.retrieve(
-              failedSubId as string
-            );
-            plan = formatPlanName((subscription as any).metadata?.plan || 'subscription');
-
-            // Calculate next retry date if available
+            const subscription = await stripe.subscriptions.retrieve(failedSubId);
+            plan = formatPlanName(subscription.metadata?.plan || 'subscription');
             if (invoice.next_payment_attempt) {
               retryDate = new Date(invoice.next_payment_attempt * 1000).toLocaleDateString();
             }
           } catch (error) {
-            console.error('Error fetching subscription:', error);
+            logger.error('Error fetching subscription', error, { subscriptionId: failedSubId });
           }
         }
 
-        // Send payment failed email
-        await sendPaymentFailedEmail(
-          customerDetails.email,
-          customerDetails.name,
-          invoice.amount_due,
-          plan,
-          retryDate
-        );
-
-        console.log(`Payment failed email sent to ${customerDetails.email}`);
+        await sendPaymentFailedEmail(customerDetails.email, customerDetails.name, invoice.amount_due, plan, retryDate);
+        logger.info('Payment failed email sent', { email: customerDetails.email, eventId: event.id });
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-
-        // Get customer details
-        const customerDetails = await getCustomerDetails(subscription.customer as string);
+        const customerDetails = await getCustomerDetails(stripe, subscription.customer as string);
         if (!customerDetails) {
-          console.error('Could not retrieve customer details');
-          break;
+          logger.error('Could not retrieve customer details for subscription.deleted', undefined, { eventId: event.id });
+          return NextResponse.json({ error: 'Customer retrieval failed' }, { status: 500 });
         }
 
-        const plan = formatPlanName((subscription as any).metadata?.plan || 'subscription');
-        const endDate = new Date((subscription as any).current_period_end * 1000).toLocaleDateString();
+        const plan = formatPlanName(subscription.metadata?.plan || 'subscription');
+        const endDate = new Date(subscription.current_period_end * 1000).toLocaleDateString();
 
-        // Send subscription canceled email
-        await sendSubscriptionCanceledEmail(
-          customerDetails.email,
-          customerDetails.name,
-          plan,
-          endDate
-        );
-
-        console.log(`Subscription canceled email sent to ${customerDetails.email}`);
+        await sendSubscriptionCanceledEmail(customerDetails.email, customerDetails.name, plan, endDate);
+        logger.info('Subscription canceled email sent', { email: customerDetails.email, eventId: event.id });
         break;
       }
 
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`New subscription created: ${subscription.id}`);
-        // Additional logic can be added here (e.g., update database)
+        logger.info('New subscription created', { subscriptionId: subscription.id, eventId: event.id });
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`Subscription updated: ${subscription.id}`);
-        // Additional logic can be added here (e.g., handle plan changes)
+        logger.info('Subscription updated', { subscriptionId: subscription.id, eventId: event.id });
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.debug('Unhandled event type', { eventType: event.type, eventId: event.id });
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    logger.error('Error processing webhook', error, { eventId: event.id });
+    // Return 500 so Stripe retries
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
