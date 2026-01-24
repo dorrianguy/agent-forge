@@ -206,7 +206,7 @@ export default function VoiceDashboardPage() {
               { id: 'embed', label: 'Widget Embed', icon: Code2, href: '/dashboard/voice/embed' },
               { id: 'flows', label: 'Flow Editor', icon: GitBranch, href: '/voice-flow-editor' },
             ] as const).map((tab) => (
-              tab.href ? (
+              'href' in tab ? (
                 <Link
                   key={tab.id}
                   href={tab.href}
