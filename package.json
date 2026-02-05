@@ -29,6 +29,7 @@
     "openai": "^6.15.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "reactflow": "^11.11.4",
     "recharts": "^2.10.0",
     "resend": "^6.6.0",
     "stripe": "^20.0.0",
