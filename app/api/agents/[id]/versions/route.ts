@@ -7,6 +7,7 @@ import {
   CreateVersionResponse,
   RollbackResponse,
   RollbackAuditEntry,
+  VersionStatus,
   DEFAULT_AGENT_CONFIG,
 } from '@/lib/version-types';
 
@@ -69,17 +70,33 @@ export async function GET(
       );
     }
 
+    // Define database row type
+    type VersionRow = {
+      id: string;
+      agent_id: string;
+      version: number;
+      status: VersionStatus;
+      config: AgentConfig;
+      notes: string | null;
+      created_at: string;
+      created_by: string | null;
+      published_at: string | null;
+      rollback_from_version: number | null;
+    };
+
+    const versionRows = (versions || []) as VersionRow[];
+
     // Find current (latest published) version
-    const publishedVersions = (versions || []).filter(v => v.status === 'published');
-    const currentVersion = publishedVersions.length > 0 
-      ? Math.max(...publishedVersions.map(v => v.version))
+    const publishedVersions = versionRows.filter((v) => v.status === 'published');
+    const currentVersion = publishedVersions.length > 0
+      ? Math.max(...publishedVersions.map((v) => v.version))
       : 0;
 
     // Check for draft
-    const hasDraft = (versions || []).some(v => v.status === 'draft');
+    const hasDraft = versionRows.some((v) => v.status === 'draft');
 
     const response: VersionListResponse = {
-      versions: (versions || []).map(v => ({
+      versions: versionRows.map((v) => ({
         id: v.id,
         agentId: v.agent_id,
         version: v.version,
