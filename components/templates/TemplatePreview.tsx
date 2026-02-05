@@ -7,7 +7,7 @@ import {
   Sparkles, CheckCircle2, BookOpen, Zap,
   Headphones, HelpCircle, RotateCcw, Rocket, MessageSquarePlus, ShieldAlert,
   Wrench, Receipt, MessageCircle, Share2, Target, Calendar, Send,
-  TrendingUp, Shield, FileText, RefreshCw, Handshake, Users as UsersIcon,
+  TrendingUp, Shield, FileText, RefreshCw, Users as UsersIcon,
   CalendarCheck, ClipboardList, Bell, Stethoscope, Pill, Heart, HeartPulse,
   Search, Package, ShoppingCart, Ruler, Gift, Crown,
   Monitor, GraduationCap, Building, UserPlus, MapPin, Tag, Key, DoorOpen,
@@ -27,7 +27,7 @@ interface TemplatePreviewProps {
 const iconMap: Record<string, React.ElementType> = {
   Headphones, HelpCircle, RotateCcw, Rocket, MessageSquarePlus, ShieldAlert,
   Wrench, Receipt, MessageCircle, Share2, Target, Calendar, Send,
-  TrendingUp, Shield, FileText, RefreshCw, Handshake, Zap, Users: UsersIcon,
+  TrendingUp, Shield, FileText, RefreshCw, Zap, Users: UsersIcon, Handshake: UserPlus,
   CalendarCheck, ClipboardList, Bell, Stethoscope, Pill, Heart, HeartPulse,
   Search, Package, Sparkles, ShoppingCart, Ruler, Gift, Crown,
   Monitor, GraduationCap, Building, UserPlus, MapPin, Tag, Key, DoorOpen,
