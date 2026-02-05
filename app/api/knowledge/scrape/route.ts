@@ -59,7 +59,7 @@ function extractLinks(html: string, baseUrl: string): string[] {
     }
   }
   
-  return [...new Set(links)]; // Remove duplicates
+  return Array.from(new Set(links)); // Remove duplicates
 }
 
 // Fetch a single page
