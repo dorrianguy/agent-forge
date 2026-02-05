@@ -10,10 +10,17 @@ import {
   DEFAULT_EMBEDDING_CONFIG,
 } from './knowledge-types';
 
-// Initialize OpenAI client (uses OPENAI_API_KEY env var)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid build-time errors
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Approximate token count (rough estimate: ~4 chars per token for English)
 export function estimateTokens(text: string): number {
@@ -118,7 +125,7 @@ export async function generateEmbedding(
   text: string,
   config: EmbeddingConfig = DEFAULT_EMBEDDING_CONFIG
 ): Promise<number[]> {
-  const response = await openai.embeddings.create({
+  const response = await getOpenAIClient().embeddings.create({
     model: config.model,
     input: text,
     dimensions: config.dimensions,
@@ -139,7 +146,7 @@ export async function generateEmbeddingsBatch(
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
     
-    const response = await openai.embeddings.create({
+    const response = await getOpenAIClient().embeddings.create({
       model,
       input: batch,
       dimensions,
