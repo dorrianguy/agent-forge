@@ -144,7 +144,7 @@ export default function DocumentUploader({ knowledgeBaseId, onUploadComplete }: 
         // Update progress
         setUploadProgress(fileItem.id, {
           documentId: fileItem.id,
-          stage: 'processing',
+          stage: 'parsing',
           progress: 50,
           message: 'Processing document...',
         });
