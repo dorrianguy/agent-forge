@@ -376,22 +376,23 @@ export async function PUT(
     };
 
     // Store audit entry (you might want a separate table for this)
-    await supabase
-      .from('rollback_audit_log')
-      .insert({
-        id: auditEntry.id,
-        agent_id: auditEntry.agentId,
-        from_version: auditEntry.fromVersion,
-        to_version: auditEntry.toVersion,
-        performed_by: auditEntry.performedBy,
-        performed_at: auditEntry.performedAt,
-        reason: auditEntry.reason,
-        new_version_created: auditEntry.newVersionCreated,
-      })
-      .catch(() => {
-        // Audit table might not exist yet - that's okay
-        console.log('Audit log table not available');
-      });
+    try {
+      await supabase
+        .from('rollback_audit_log')
+        .insert({
+          id: auditEntry.id,
+          agent_id: auditEntry.agentId,
+          from_version: auditEntry.fromVersion,
+          to_version: auditEntry.toVersion,
+          performed_by: auditEntry.performedBy,
+          performed_at: auditEntry.performedAt,
+          reason: auditEntry.reason,
+          new_version_created: auditEntry.newVersionCreated,
+        });
+    } catch {
+      // Audit table might not exist yet - that's okay
+      console.log('Audit log table not available');
+    }
 
     // Update the main agent record
     await supabase
