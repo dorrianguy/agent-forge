@@ -77,7 +77,7 @@ export default function DocumentList({ knowledgeBaseId, onSelectDocument, onView
   };
 
   const deleteSelected = async () => {
-    for (const id of selectedIds) {
+    for (const id of Array.from(selectedIds)) {
       deleteDocument(id);
     }
     setSelectedIds(new Set());
