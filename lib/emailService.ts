@@ -1,6 +1,14 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-load Resend client to avoid build-time errors
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 const APP_URL = 'https://agent-forge.app';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'Agent Forge <noreply@agent-forge.app>';
@@ -141,7 +149,7 @@ export async function sendWelcomeEmail(email: string, name: string, plan: string
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Welcome to Agent Forge!',
@@ -193,7 +201,7 @@ export async function sendPaymentSuccessEmail(
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Payment Received - Agent Forge',
@@ -256,7 +264,7 @@ export async function sendPaymentFailedEmail(
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Payment Failed - Action Required',
@@ -319,7 +327,7 @@ export async function sendSubscriptionCanceledEmail(
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Subscription Canceled - Agent Forge',
@@ -375,7 +383,7 @@ export async function sendUsageAlertEmail(
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: `Usage Alert: ${usagePercent}% of Monthly Limit Reached`,
@@ -439,7 +447,7 @@ export async function sendWeeklySummaryEmail(
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Your Agent Forge Weekly Summary',
