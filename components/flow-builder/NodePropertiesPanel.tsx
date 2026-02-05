@@ -222,9 +222,9 @@ export default function NodePropertiesPanel({ node, onClose }: NodePropertiesPan
     return () => clearTimeout(timer);
   }, [localData, node.id, updateNode]);
 
-  const updateField = <K extends keyof FlowNodeData>(
-    field: K,
-    value: FlowNodeData[K]
+  const updateField = (
+    field: string,
+    value: unknown
   ) => {
     setLocalData((prev) => ({ ...prev, [field]: value }));
   };
