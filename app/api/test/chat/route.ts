@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
               const stream = await openai.chat.completions.create({
                 ...requestPayload,
                 stream: true,
-              });
+              } as OpenAI.ChatCompletionCreateParamsStreaming);
 
               for await (const chunk of stream) {
                 const delta = chunk.choices[0]?.delta?.content || '';
