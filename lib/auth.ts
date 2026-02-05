@@ -1,14 +1,22 @@
 import { createClient } from './supabase';
 import type { Profile, Agent } from './supabase';
 
-const supabase = createClient();
+// Lazy-load Supabase client to avoid build-time errors
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    supabaseClient = createClient();
+  }
+  return supabaseClient;
+}
 
 // ================================
 // AUTH FUNCTIONS
 // ================================
 
 export async function signUp(email: string, password: string, name?: string) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await getSupabase().auth.signUp({
     email,
     password,
     options: {
@@ -23,7 +31,7 @@ export async function signUp(email: string, password: string, name?: string) {
 }
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await getSupabase().auth.signInWithPassword({
     email,
     password,
   });
@@ -33,7 +41,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signInWithOAuth(provider: 'google' | 'github') {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await getSupabase().auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${window.location.origin}/auth/callback`,
@@ -45,18 +53,18 @@ export async function signInWithOAuth(provider: 'google' | 'github') {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await getSupabase().auth.signOut();
   if (error) throw error;
 }
 
 export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await getSupabase().auth.getSession();
   if (error) throw error;
   return session;
 }
 
 export async function getUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await getSupabase().auth.getUser();
   if (error) throw error;
   return user;
 }
