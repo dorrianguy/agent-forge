@@ -5,14 +5,27 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import type { DebugInfo, TokenUsage, ToolCall, KnowledgeChunk } from '@/lib/test-types';
 import { calculateCost } from '@/lib/test-types';
 
-// Initialize clients (they'll be used based on agent config)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load clients to avoid build-time errors
+let openaiClient: OpenAI | null = null;
+let anthropicClient: Anthropic | null = null;
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropicClient;
+}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -97,7 +110,7 @@ export async function POST(request: NextRequest) {
           try {
             if (isAnthropic) {
               // Anthropic streaming
-              const stream = await anthropic.messages.stream({
+              const stream = await getAnthropicClient().messages.stream({
                 model,
                 system: systemPrompt,
                 messages: apiMessages.filter(m => m.role !== 'system').map(m => ({
@@ -125,7 +138,7 @@ export async function POST(request: NextRequest) {
               finishReason = finalMessage.stop_reason || 'stop';
             } else {
               // OpenAI streaming
-              const stream = await openai.chat.completions.create({
+              const stream = await getOpenAIClient().chat.completions.create({
                 ...requestPayload,
                 stream: true,
               } as OpenAI.ChatCompletionCreateParamsStreaming);
@@ -193,7 +206,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Non-streaming response
       if (isAnthropic) {
-        response = await anthropic.messages.create({
+        response = await getAnthropicClient().messages.create({
           model,
           system: systemPrompt,
           messages: apiMessages.filter(m => m.role !== 'system').map(m => ({
@@ -211,7 +224,7 @@ export async function POST(request: NextRequest) {
         };
         finishReason = response.stop_reason || 'stop';
       } else {
-        response = await openai.chat.completions.create(requestPayload);
+        response = await getOpenAIClient().chat.completions.create(requestPayload);
 
         content = response.choices[0]?.message?.content || '';
         tokens = {
