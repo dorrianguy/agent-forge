@@ -6,12 +6,12 @@ import type { SearchResult, SearchQuery, Chunk, Document } from '@/lib/knowledge
 export async function POST(request: NextRequest) {
   try {
     const body: SearchQuery & { chunks?: Chunk[]; documents?: Document[] } = await request.json();
-    const { 
-      query, 
-      knowledgeBaseIds, 
-      topK = 5, 
-      minScore = 0.3,
-      includeMetadata = true,
+    const {
+      query,
+      knowledge_base_ids: knowledgeBaseIds,
+      top_k: topK = 5,
+      min_score: minScore = 0.3,
+      include_metadata: includeMetadata = true,
       chunks,
       documents,
     } = body;
