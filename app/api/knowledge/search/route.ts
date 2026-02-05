@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       return {
         chunk: includeMetadata ? chunk : {
           ...chunk,
-          embedding: undefined, // Don't send full embedding back
+          embedding: null, // Don't send full embedding back
         },
         document: document || {
           id: chunk.document_id,
