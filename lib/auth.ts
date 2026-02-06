@@ -77,7 +77,7 @@ export async function getProfile(): Promise<Profile | null> {
   const user = await getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -91,7 +91,7 @@ export async function updateProfile(updates: Partial<Profile>) {
   const user = await getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('profiles')
     .update(updates)
     .eq('id', user.id)
@@ -110,7 +110,7 @@ export async function getAgents(): Promise<Agent[]> {
   const user = await getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .select('*')
     .eq('user_id', user.id)
@@ -121,7 +121,7 @@ export async function getAgents(): Promise<Agent[]> {
 }
 
 export async function getAgent(id: string): Promise<Agent | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .select('*')
     .eq('id', id)
@@ -140,7 +140,7 @@ export async function createAgent(agent: {
   const user = await getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .insert({
       user_id: user.id,
@@ -158,7 +158,7 @@ export async function createAgent(agent: {
 }
 
 export async function updateAgent(id: string, updates: Partial<Agent>): Promise<Agent> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .update(updates)
     .eq('id', id)
@@ -170,7 +170,7 @@ export async function updateAgent(id: string, updates: Partial<Agent>): Promise<
 }
 
 export async function deleteAgent(id: string) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('agents')
     .delete()
     .eq('id', id);
