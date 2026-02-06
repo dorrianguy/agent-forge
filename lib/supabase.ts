@@ -1,9 +1,10 @@
-import { createBrowserClient, type SupabaseClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
 
 // Lazy-loaded singleton to avoid build-time errors
-let supabaseInstance: SupabaseClient | null = null;
+type SupabaseClientType = ReturnType<typeof createBrowserClient>;
+let supabaseInstance: SupabaseClientType | null = null;
 
-export function createClient(): SupabaseClient {
+export function createClient(): SupabaseClientType {
   // Return cached instance if available
   if (supabaseInstance) {
     return supabaseInstance;
@@ -18,7 +19,7 @@ export function createClient(): SupabaseClient {
     // This allows the build to proceed but runtime will fail clearly
     if (typeof window === 'undefined') {
       // Server-side build - return a mock that throws
-      return new Proxy({} as SupabaseClient, {
+      return new Proxy({} as SupabaseClientType, {
         get() {
           throw new Error('Supabase client not initialized. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
         },
