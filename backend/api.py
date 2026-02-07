@@ -26,8 +26,43 @@ logger = logging.getLogger('AgentForge.API')
 
 # ==================== App Configuration ====================
 
+
+def _parse_cors_origins(raw: str) -> List[str]:
+    """Parse and validate CORS origins from environment variable.
+
+    - Strips whitespace from each origin
+    - Removes empty strings
+    - Warns about non-HTTPS origins in production
+    - Rejects wildcard '*' when credentials are enabled
+    """
+    origins = [o.strip().rstrip('/') for o in raw.split(',') if o.strip()]
+
+    is_production = os.environ.get('NODE_ENV', '').lower() == 'production' or \
+                    os.environ.get('ENVIRONMENT', '').lower() == 'production'
+
+    validated = []
+    for origin in origins:
+        if origin == '*':
+            logger.warning("CORS: Wildcard '*' origin is insecure with credentials. Skipping.")
+            continue
+        if not origin.startswith(('http://', 'https://')):
+            logger.warning(f"CORS: Invalid origin '{origin}' (must start with http:// or https://). Skipping.")
+            continue
+        if is_production and origin.startswith('http://') and 'localhost' not in origin:
+            logger.warning(f"CORS: Non-HTTPS origin '{origin}' in production environment.")
+        validated.append(origin)
+
+    if not validated:
+        logger.warning("CORS: No valid origins configured. Falling back to localhost defaults.")
+        validated = ['http://localhost:3000', 'http://localhost:8000']
+
+    return validated
+
+
 # Allowed origins - configure via environment
-ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:8000').split(',')
+ALLOWED_ORIGINS = _parse_cors_origins(
+    os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:8000')
+)
 
 app = FastAPI(
     title="Agent Forge API",
