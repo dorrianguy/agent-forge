@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sign In - Agent Forge',
     description: 'Sign in to access your AI agents. Join thousands of businesses automating customer interactions.',
-    url: 'https://agentforge.ai/login',
+    url: 'https://agent-forge.app/login',
   },
   alternates: {
     canonical: '/login',

@@ -2,8 +2,8 @@
   "business": {
     "name": "Agent Forge",
     "tagline": "Build AI Agents Without Code",
-    "url": "https://agentforge.ai",
-    "support_email": "support@agentforge.ai"
+    "url": "https://agent-forge.app",
+    "support_email": "support@agent-forge.app"
   },
   "pricing": {
     "currency": "USD",

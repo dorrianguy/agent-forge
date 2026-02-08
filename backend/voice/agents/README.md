@@ -403,4 +403,4 @@ For questions or issues:
 - Check the example agent implementation
 - Review the base class documentation
 - See the Agent Forge main documentation
-- Contact: support@agentforge.ai
+- Contact: support@agent-forge.app

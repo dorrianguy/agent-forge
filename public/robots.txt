@@ -1,5 +1,5 @@
 # Agent Forge - Robots.txt
-# https://agentforge.ai
+# https://agent-forge.app
 
 # Allow all crawlers
 User-agent: *
@@ -13,6 +13,22 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
+# Allow AI crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 # Disallow private/authenticated routes
 Disallow: /dashboard
 Disallow: /api/
@@ -21,4 +37,4 @@ Disallow: /checkout/
 Disallow: /billing/
 
 # Sitemap location
-Sitemap: https://agentforge.ai/sitemap.xml
+Sitemap: https://agent-forge.app/sitemap.xml

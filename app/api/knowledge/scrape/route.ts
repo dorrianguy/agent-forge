@@ -67,7 +67,7 @@ async function fetchPage(url: string, depth: number): Promise<ScrapedPage | null
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AgentForge/1.0; +https://agentforge.ai)',
+        'User-Agent': 'Mozilla/5.0 (compatible; AgentForge/1.0; +https://agent-forge.app)',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       },
       signal: AbortSignal.timeout(10000), // 10 second timeout
