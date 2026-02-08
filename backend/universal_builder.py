@@ -695,7 +695,7 @@ Copy and paste this code before the closing `</body>` tag:
 
 ## Support
 
-For help with this agent, contact support@agentforge.ai
+For help with this agent, contact support@agent-forge.app
 '''
     
     async def _run_tests(self, spec: AgentSpec, code: str) -> Dict[str, Any]:

@@ -26,13 +26,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://agentforge.ai',
+    url: 'https://agent-forge.app',
     siteName: 'Agent Forge',
     title: 'Agent Forge - Build AI Agents Without Code',
     description: 'Build production-ready AI agents in minutes. No coding required. Create customer support bots, sales assistants, and lead qualifiers.',
     images: [
       {
-        url: 'https://agentforge.ai/og-image.png',
+        url: 'https://agent-forge.app/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Agent Forge - Build AI Agents Without Code',
@@ -43,16 +43,67 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Agent Forge - Build AI Agents Without Code',
     description: 'Build production-ready AI agents in minutes. No coding required.',
-    images: ['https://agentforge.ai/og-image.png'],
+    images: ['https://agent-forge.app/og-image.png'],
     creator: '@agentforge',
   },
-  metadataBase: new URL('https://agentforge.ai'),
+  metadataBase: new URL('https://agent-forge.app'),
   alternates: {
     canonical: '/',
   },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Agent Forge',
+  url: 'https://agent-forge.app',
+  description: 'No-code AI agent builder with voice, phone, and multi-channel capabilities. Build and deploy AI agents in 60 seconds without writing code.',
+  applicationCategory: 'BusinessApplication',
+  applicationSubCategory: 'AI Agent Builder',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'AggregateOffer',
+    priceCurrency: 'USD',
+    lowPrice: '79',
+    highPrice: '799',
+    offerCount: '3',
+  },
+  featureList: [
+    'No-code AI agent builder',
+    'Voice agents with phone integration',
+    'Dedicated phone numbers included',
+    'TTS voice cloning',
+    'Multi-channel deployment (web, WhatsApp, Slack, Discord, SMS, phone, email)',
+    'Real-time analytics',
+    'SOC 2 compliant',
+    'White-label for agencies',
+    'Batch calling campaigns',
+    '60-second deployment',
+    '14-day free trial',
+  ],
+  author: {
+    '@type': 'Organization',
+    name: 'Agent Forge',
+    url: 'https://agent-forge.app',
+  },
+};
+
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Agent Forge',
+  url: 'https://agent-forge.app',
+  logo: 'https://agent-forge.app/logo.png',
+  description: 'No-code AI agent builder with voice, phone, and multi-channel capabilities.',
+  foundingDate: '2025',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'support@agent-forge.app',
+    contactType: 'customer support',
   },
 };
 
@@ -63,6 +114,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+      </head>
       <body className="bg-slate-950">{children}</body>
     </html>
   );

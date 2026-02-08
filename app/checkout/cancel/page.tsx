@@ -66,7 +66,7 @@ export default function CheckoutCancelPage() {
         </div>
 
         <p className="text-sm text-slate-500 mt-6">
-          Need help? <a href="mailto:support@agentforge.ai" className="text-orange-500 hover:text-orange-400">Contact Support</a>
+          Need help? <a href="mailto:support@agent-forge.app" className="text-orange-500 hover:text-orange-400">Contact Support</a>
         </p>
       </motion.div>
     </div>
