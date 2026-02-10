@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { logger } from '@/lib/logger';
 import type { DebugInfo, TokenUsage, ToolCall, KnowledgeChunk } from '@/lib/test-types';
 import { calculateCost } from '@/lib/test-types';
 
@@ -268,7 +269,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Test chat error:', error);
+    logger.error('Test chat error', error);
     return NextResponse.json(
       { error: 'Failed to process chat request' },
       { status: 500 }

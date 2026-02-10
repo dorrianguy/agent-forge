@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { ScrapedPage } from '@/lib/knowledge-types';
 
 // Simple HTML to text extraction
@@ -101,7 +102,7 @@ async function fetchPage(url: string, depth: number): Promise<ScrapedPage | null
       selected: true,
     };
   } catch (error) {
-    console.error(`Failed to fetch ${url}:`, error);
+    logger.error('Failed to fetch page', error, { url });
     return null;
   }
 }
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Scrape error:', error);
+    logger.error('Website scrape error', error);
     return NextResponse.json(
       { error: 'Failed to scrape website' },
       { status: 500 }
