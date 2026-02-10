@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
 
 // Lazy-load Stripe client to avoid build-time errors
 let stripeClient: Stripe | null = null;
 
-function getStripeClient(): Stripe {
+function getStripeClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    logger.error('STRIPE_SECRET_KEY not configured');
+    return null;
+  }
   if (!stripeClient) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    stripeClient = new Stripe(secretKey, {
       apiVersion: '2025-11-17.clover',
     });
   }
@@ -32,8 +38,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Payment service not available' },
+        { status: 503 }
+      );
+    }
+
     // Create Stripe checkout session
-    const session = await getStripeClient().checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
@@ -63,7 +77,7 @@ export async function POST(request: NextRequest) {
       url: session.url
     });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
+    logger.error('Stripe checkout error', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

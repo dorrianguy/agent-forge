@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateEmbedding, cosineSimilarity } from '@/lib/embeddings';
+import { logger } from '@/lib/logger';
 import type { SearchResult, SearchQuery, Chunk, Document } from '@/lib/knowledge-types';
 
 // POST: Vector similarity search
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Search error:', error);
+    logger.error('Knowledge search error', error);
     return NextResponse.json(
       { error: 'Failed to perform search' },
       { status: 500 }

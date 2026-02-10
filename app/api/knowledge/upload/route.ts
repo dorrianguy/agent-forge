@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { chunkText, generateEmbeddingsBatch, estimateTokens } from '@/lib/embeddings';
+import { logger } from '@/lib/logger';
 import type { Document, Chunk, DocumentType, ChunkingConfig } from '@/lib/knowledge-types';
 
 // POST: Upload and process a new document
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Upload error:', error);
+    logger.error('Document upload error', error);
     return NextResponse.json(
       { error: 'Failed to upload document' },
       { status: 500 }
@@ -241,7 +242,7 @@ export async function PUT(request: NextRequest) {
     }
     
   } catch (error) {
-    console.error('Process error:', error);
+    logger.error('Document processing error', error);
     return NextResponse.json(
       { error: 'Failed to process document' },
       { status: 500 }
@@ -274,7 +275,7 @@ export async function DELETE(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Delete error:', error);
+    logger.error('Document deletion error', error);
     return NextResponse.json(
       { error: 'Failed to delete document' },
       { status: 500 }

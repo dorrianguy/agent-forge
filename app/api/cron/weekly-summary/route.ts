@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWeeklyDigest } from '@/lib/usageService';
+import { logger } from '@/lib/logger';
 
 // Verify the cron secret to prevent unauthorized access
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`Weekly summary cron completed. Processed ${results.length} users.`);
+    logger.info('Weekly summary cron completed', { processed: results.length });
 
     return NextResponse.json({
       success: true,
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Weekly summary cron failed:', error);
+    logger.error('Weekly summary cron failed', error);
     return NextResponse.json(
       { error: 'Cron job failed', details: String(error) },
       { status: 500 }
