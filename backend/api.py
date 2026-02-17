@@ -21,8 +21,9 @@ from .universal_builder import UniversalAgentBuilder
 from . import database as db
 from .auth import get_api_key_auth, AuthResult, create_api_key, list_keys, revoke_key
 from .billing import get_billing_manager, BillingManager
+from .logging_config import get_logger
 
-logger = logging.getLogger('AgentForge.API')
+logger = get_logger('AgentForge.API')
 
 # ==================== App Configuration ====================
 
@@ -398,6 +399,39 @@ async def build_agent(
                 "message": "Workflow auto-activated with 12 Claude skills"
             }
         }
+    except KeyError as e:
+        logger.error(f"Resource not found while building agent: {e}")
+        db.save_outcome({
+            'outcome_type': 'agent_build',
+            'action': 'build_agent',
+            'context': {'description': request.description[:200]},
+            'result': {'error': str(e)},
+            'success': False,
+            'score': 0.0
+        })
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error while building agent: {e}")
+        db.save_outcome({
+            'outcome_type': 'agent_build',
+            'action': 'build_agent',
+            'context': {'description': request.description[:200]},
+            'result': {'error': str(e)},
+            'success': False,
+            'score': 0.0
+        })
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type while building agent: {e}")
+        db.save_outcome({
+            'outcome_type': 'agent_build',
+            'action': 'build_agent',
+            'context': {'description': request.description[:200]},
+            'result': {'error': str(e)},
+            'success': False,
+            'score': 0.0
+        })
+        raise HTTPException(status_code=400, detail="Invalid data type")
     except Exception as e:
         logger.error(f"Failed to build agent: {e}")
         db.save_outcome({
@@ -408,7 +442,7 @@ async def build_agent(
             'success': False,
             'score': 0.0
         })
-        raise HTTPException(500, f"Failed to build agent: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to build agent: {str(e)}")
 
 
 @app.get("/agents")
@@ -546,19 +580,29 @@ async def qualify_lead(
     if not auth.authenticated:
         raise HTTPException(status_code=401, detail=auth.error)
 
-    result = await orchestrator.sales.qualify_lead(request.lead_data)
+    try:
+        result = await orchestrator.sales.qualify_lead(request.lead_data)
 
-    # Record outcome for learning
-    db.save_outcome({
-        'outcome_type': 'lead_qualification',
-        'action': 'qualify_lead',
-        'context': request.lead_data,
-        'result': result,
-        'success': result.get('qualified', False),
-        'score': result.get('score', 0.5)
-    })
+        # Record outcome for learning
+        db.save_outcome({
+            'outcome_type': 'lead_qualification',
+            'action': 'qualify_lead',
+            'context': request.lead_data,
+            'result': result,
+            'success': result.get('qualified', False),
+            'score': result.get('score', 0.5)
+        })
 
-    return result
+        return result
+    except KeyError as e:
+        logger.error(f"Resource not found in lead qualification: {e}")
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error in lead qualification: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type in lead qualification: {e}")
+        raise HTTPException(status_code=400, detail="Invalid data type")
 
 
 @app.post("/sales/conversation")
@@ -571,14 +615,24 @@ async def sales_conversation(
     if not auth.authenticated:
         raise HTTPException(status_code=401, detail=auth.error)
 
-    conversation_id = request.conversation_id or str(uuid.uuid4())
-    result = await orchestrator.sales.handle_sales_conversation(
-        conversation_id,
-        request.message,
-        request.history
-    )
+    try:
+        conversation_id = request.conversation_id or str(uuid.uuid4())
+        result = await orchestrator.sales.handle_sales_conversation(
+            conversation_id,
+            request.message,
+            request.history
+        )
 
-    return result
+        return result
+    except KeyError as e:
+        logger.error(f"Resource not found in sales conversation: {e}")
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error in sales conversation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type in sales conversation: {e}")
+        raise HTTPException(status_code=400, detail="Invalid data type")
 
 
 # ==================== Support Endpoints ====================
@@ -593,22 +647,32 @@ async def handle_support(
     if not auth.authenticated:
         raise HTTPException(status_code=401, detail=auth.error)
 
-    result = await orchestrator.support.handle_support_request(
-        request.message,
-        request.customer_context
-    )
+    try:
+        result = await orchestrator.support.handle_support_request(
+            request.message,
+            request.customer_context
+        )
 
-    # Record outcome for learning
-    db.save_outcome({
-        'outcome_type': 'support_request',
-        'action': 'handle_support',
-        'context': {'message': request.message[:200]},
-        'result': {'category': result.get('category', 'unknown')},
-        'success': True,
-        'score': 0.8
-    })
+        # Record outcome for learning
+        db.save_outcome({
+            'outcome_type': 'support_request',
+            'action': 'handle_support',
+            'context': {'message': request.message[:200]},
+            'result': {'category': result.get('category', 'unknown')},
+            'success': True,
+            'score': 0.8
+        })
 
-    return result
+        return result
+    except KeyError as e:
+        logger.error(f"Resource not found in support request: {e}")
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error in support request: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type in support request: {e}")
+        raise HTTPException(status_code=400, detail="Invalid data type")
 
 
 # ==================== Marketing Endpoints ====================
@@ -623,19 +687,29 @@ async def generate_blog(
     if not auth.authenticated:
         raise HTTPException(status_code=401, detail=auth.error)
 
-    result = await orchestrator.marketing.generate_blog_post(topic)
+    try:
+        result = await orchestrator.marketing.generate_blog_post(topic)
 
-    # Record outcome
-    db.save_outcome({
-        'outcome_type': 'content_generation',
-        'action': 'generate_blog',
-        'context': {'topic': topic},
-        'result': {'word_count': len(result.get('content', '').split())},
-        'success': True,
-        'score': 0.9
-    })
+        # Record outcome
+        db.save_outcome({
+            'outcome_type': 'content_generation',
+            'action': 'generate_blog',
+            'context': {'topic': topic},
+            'result': {'word_count': len(result.get('content', '').split())},
+            'success': True,
+            'score': 0.9
+        })
 
-    return result
+        return result
+    except KeyError as e:
+        logger.error(f"Resource not found in blog generation: {e}")
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error in blog generation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type in blog generation: {e}")
+        raise HTTPException(status_code=400, detail="Invalid data type")
 
 
 @app.post("/marketing/social")
@@ -648,8 +722,18 @@ async def generate_social(
     if not auth.authenticated:
         raise HTTPException(status_code=401, detail=auth.error)
 
-    result = await orchestrator.marketing.generate_social_posts(topic)
-    return result
+    try:
+        result = await orchestrator.marketing.generate_social_posts(topic)
+        return result
+    except KeyError as e:
+        logger.error(f"Resource not found in social post generation: {e}")
+        raise HTTPException(status_code=404, detail="Resource not found")
+    except ValueError as e:
+        logger.error(f"Validation error in social post generation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except TypeError as e:
+        logger.error(f"Invalid data type in social post generation: {e}")
+        raise HTTPException(status_code=400, detail="Invalid data type")
 
 
 # ==================== Workforce Endpoints ====================

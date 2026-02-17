@@ -38,7 +38,9 @@ export interface Profile {
   email: string;
   name: string | null;
   avatar_url: string | null;
-  plan: 'free' | 'starter' | 'professional' | 'enterprise';
+  subscription_tier: 'free' | 'starter' | 'professional' | 'enterprise';
+  // Alias for backward compatibility - use subscription_tier instead
+  plan?: 'free' | 'starter' | 'professional' | 'enterprise';
   stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
