@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Bot, Zap, Shield, Globe, BarChart3,
   ArrowRight, Check, Play, Star, MessageSquare,
-  Sparkles, ChevronRight, Users
+  Sparkles, ChevronRight, Users, X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,6 +23,16 @@ const staggerContainer = {
 };
 
 export default function LandingPage() {
+  const [showDemo, setShowDemo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!showDemo && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [showDemo]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden">
       {/* Background Effects */}
@@ -140,6 +150,7 @@ export default function LandingPage() {
                 className="px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-white font-medium text-lg flex items-center gap-3 hover:bg-white/10 transition"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => setShowDemo(true)}
               >
                 <Play className="w-5 h-5" />
                 Watch Demo
@@ -412,6 +423,54 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {/* Demo Video Modal */}
+      <AnimatePresence>
+        {showDemo && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setShowDemo(false)}
+            />
+
+            {/* Video container */}
+            <motion.div
+              className="relative z-10 w-full max-w-5xl mx-4"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setShowDemo(false)}
+                className="absolute -top-12 right-0 text-white/60 hover:text-white transition flex items-center gap-2 text-sm"
+              >
+                Close <X className="w-5 h-5" />
+              </button>
+
+              {/* Video player */}
+              <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-orange-500/10 bg-black">
+                <video
+                  ref={videoRef}
+                  src="/demo-video.mp4"
+                  controls
+                  autoPlay
+                  className="w-full aspect-video"
+                  playsInline
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
