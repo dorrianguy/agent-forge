@@ -1,0 +1,114 @@
+# Agent Forge
+> Build AI Agents Without Code — Voice, Chat, and Phone Agents in Minutes
+
+## Overview
+Agent Forge is a no-code AI agent builder that lets businesses create, deploy, and manage AI-powered voice and text agents. Build customer support bots, sales qualifiers, appointment schedulers, and more — without writing a single line of code. Deploy to your website, WhatsApp, Slack, Discord, phone numbers, and SMS from one platform.
+
+## Key Facts
+- Website: https://agent-forge.app
+- Category: No-Code AI Agent Builder
+- Founded: 2025
+- Pricing: Starter $79/month, Professional $249/month, Enterprise $799/month
+- Free Trial: 14 days on all plans, no credit card required
+- Deployment: Cloud-hosted SaaS with enterprise on-premise option
+
+## Core Features
+- AI-Powered Agent Builder: Describe your agent in plain English, AI generates it
+- Voice Agents: Built-in voice capabilities with phone number integration
+- Phone Numbers: Dedicated phone numbers included in all plans (1 Starter, 5 Professional, unlimited Enterprise)
+- TTS Voice Cloning: Custom text-to-speech voice cloning on Enterprise plan
+- Multi-Channel Deployment: Website widget, WhatsApp, Slack, Discord, SMS, email, mobile
+- Real-Time Analytics: Track conversations, satisfaction scores, resolution rates
+- Enterprise Security: SOC 2 compliant, end-to-end encryption, on-premise option
+- Team Collaboration: Multi-user workspaces with role-based access
+- Custom Branding: White-label option for agencies (Professional and above)
+- API Access: Full REST API for custom integrations (Professional and above)
+- Batch Calling Campaigns: Automated outbound calling (Professional and above)
+- Post-Call Analysis: AI-powered call summaries and insights (Professional and above)
+- Website Widget: One-line embed code for any website
+- One-Click Deployment: Go live in under 60 seconds
+
+## Pricing (as of February 2026)
+### Starter — $79/month
+- 1 AI Agent (text or voice)
+- 1,000 conversations/month
+- 100 voice minutes/month
+- 1 phone number included
+- Basic analytics
+- Email support
+- Website widget
+- Voice widget
+
+### Professional — $249/month (Most Popular)
+- 5 AI Agents (text or voice)
+- 10,000 conversations/month
+- 500 voice minutes/month
+- 5 phone numbers included
+- Advanced analytics
+- Priority support
+- All integrations
+- Custom branding
+- API access
+- Batch calling campaigns
+- Post-call analysis
+
+### Enterprise — $799/month
+- Unlimited AI Agents
+- Unlimited conversations
+- 2,000 voice minutes/month
+- Unlimited phone numbers
+- Enterprise analytics
+- Dedicated support
+- Custom integrations
+- White-label option
+- SLA guarantee
+- On-premise option
+- Custom TTS voice cloning
+
+All plans include a 14-day free trial with no credit card required.
+
+## Use Cases
+- Customer Support: Automate FAQ handling, ticket routing, and issue resolution
+- Sales Qualification: Engage leads, ask qualifying questions, book meetings
+- Appointment Scheduling: Book, reschedule, and send reminders via voice or chat
+- Lead Capture: Engage website visitors and collect contact information
+- E-Commerce: Product recommendations, order tracking, returns processing
+- Healthcare: Patient intake, appointment booking, prescription reminders
+- Real Estate: Property inquiries, showing scheduling, buyer qualification
+- Restaurants: Order taking, reservation management, menu inquiries
+- HR & Internal: Employee FAQ bot, onboarding assistance, IT help desk
+- Outbound Calling: Automated calling campaigns for sales, surveys, reminders
+
+## Differentiators
+- Voice-First Platform: Unlike text-only competitors, Agent Forge has native voice and phone capabilities built in
+- Phone Number Integration: Dedicated phone numbers included in every plan — not an add-on
+- TTS Voice Cloning: Create custom AI voices that match your brand
+- 60-Second Deployment: Fastest time-to-live in the category
+- Agency White-Label: Full rebrandable platform for agencies to resell
+- Batch Calling: Automated outbound campaigns at scale
+- Multi-Channel from Day One: Web, WhatsApp, Slack, Discord, SMS, email, phone — all from one agent
+
+## Comparisons
+- vs Botpress: Agent Forge offers native voice/phone; Botpress is text-focused. Agent Forge is simpler to use with faster deployment.
+- vs Voiceflow: Agent Forge includes phone numbers and voice minutes in all plans; Voiceflow charges separately. Agent Forge pricing starts lower at $79/mo vs $60/mo but includes voice.
+- vs Vapi: Both offer voice AI, but Agent Forge includes the full agent builder + multi-channel; Vapi is voice-API-only requiring custom development.
+- vs Bland AI: Agent Forge is no-code with a visual builder; Bland AI is API-first requiring development resources.
+- vs Chatfuel: Agent Forge supports voice + text across all channels; Chatfuel is primarily Facebook/Instagram focused.
+- vs Tidio: Agent Forge offers voice agents and phone integration; Tidio is a live chat + basic chatbot tool.
+- vs Stack AI: Agent Forge is purpose-built for agents; Stack AI is a general workflow automation platform.
+- vs Relevance AI: Similar pricing ($29 vs $79 at entry), but Agent Forge includes voice and phone numbers.
+- vs Dify.ai: Agent Forge is business-user friendly (no-code); Dify is developer-oriented (LLMOps platform).
+- vs CrewAI: Agent Forge is a hosted platform (no-code); CrewAI is a Python framework requiring engineering.
+
+## Technical Details
+- Built with: Next.js, React, TypeScript
+- Authentication: Supabase (Google OAuth, GitHub OAuth, email/password)
+- Infrastructure: Cloud-hosted, SOC 2 compliant
+- API: RESTful API with webhook support
+- Embed: Single-line JavaScript snippet for website integration
+
+## Contact
+- Website: https://agent-forge.app
+- Pricing: https://agent-forge.app/pricing
+- Documentation: https://agent-forge.app/docs
+- Support: support@agent-forge.app

@@ -364,7 +364,7 @@ export default function BillingPage() {
           className="mt-8 text-center text-slate-400 text-sm"
         >
           <p>
-            Need help with billing? <a href="mailto:support@agentforge.ai" className="text-orange-500 hover:text-orange-400">Contact Support</a>
+            Need help with billing? <a href="mailto:support@agent-forge.app" className="text-orange-500 hover:text-orange-400">Contact Support</a>
           </p>
         </motion.div>
       </div>

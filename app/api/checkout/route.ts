@@ -5,9 +5,22 @@ import Stripe from 'stripe';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rateLimit';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-11-17.clover',
-});
+// Lazy-load Stripe client to avoid build-time errors
+let stripeClient: Stripe | null = null;
+
+function getStripeClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    logger.error('STRIPE_SECRET_KEY not configured');
+    return null;
+  }
+  if (!stripeClient) {
+    stripeClient = new Stripe(secretKey, {
+      apiVersion: '2025-11-17.clover',
+    });
+  }
+  return stripeClient;
+}
 
 // Price IDs - MUST be configured in environment
 const PRICE_IDS: Record<string, string | undefined> = {
@@ -42,6 +55,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Payment service not available' },
+        { status: 503 }
       );
     }
 

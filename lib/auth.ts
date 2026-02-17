@@ -1,14 +1,22 @@
 import { createClient } from './supabase';
 import type { Profile, Agent } from './supabase';
 
-const supabase = createClient();
+// Lazy-load Supabase client to avoid build-time errors
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  if (!supabaseClient) {
+    supabaseClient = createClient();
+  }
+  return supabaseClient;
+}
 
 // ================================
 // AUTH FUNCTIONS
 // ================================
 
 export async function signUp(email: string, password: string, name?: string) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await getSupabase().auth.signUp({
     email,
     password,
     options: {
@@ -23,7 +31,7 @@ export async function signUp(email: string, password: string, name?: string) {
 }
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await getSupabase().auth.signInWithPassword({
     email,
     password,
   });
@@ -33,7 +41,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signInWithOAuth(provider: 'google' | 'github') {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await getSupabase().auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${window.location.origin}/auth/callback`,
@@ -45,18 +53,18 @@ export async function signInWithOAuth(provider: 'google' | 'github') {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await getSupabase().auth.signOut();
   if (error) throw error;
 }
 
 export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await getSupabase().auth.getSession();
   if (error) throw error;
   return session;
 }
 
 export async function getUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await getSupabase().auth.getUser();
   if (error) throw error;
   return user;
 }
@@ -69,7 +77,7 @@ export async function getProfile(): Promise<Profile | null> {
   const user = await getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
@@ -88,7 +96,7 @@ export async function updateProfile(updates: Partial<Profile>) {
   const user = await getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('user_profiles')
     .update(updates)
     .eq('id', user.id)
@@ -107,7 +115,7 @@ export async function getAgents(): Promise<Agent[]> {
   const user = await getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .select('*')
     .eq('user_id', user.id)
@@ -118,7 +126,7 @@ export async function getAgents(): Promise<Agent[]> {
 }
 
 export async function getAgent(id: string): Promise<Agent | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .select('*')
     .eq('id', id)
@@ -137,7 +145,7 @@ export async function createAgent(agent: {
   const user = await getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .insert({
       user_id: user.id,
@@ -155,7 +163,7 @@ export async function createAgent(agent: {
 }
 
 export async function updateAgent(id: string, updates: Partial<Agent>): Promise<Agent> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('agents')
     .update(updates)
     .eq('id', id)
@@ -167,7 +175,7 @@ export async function updateAgent(id: string, updates: Partial<Agent>): Promise<
 }
 
 export async function deleteAgent(id: string) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('agents')
     .delete()
     .eq('id', id);

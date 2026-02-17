@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Agent Forge Pricing - Simple, Transparent Plans',
     description: 'Choose the plan that fits your needs. All plans include a 14-day free trial. Start building AI agents today.',
-    url: 'https://agentforge.ai/pricing',
+    url: 'https://agent-forge.app/pricing',
   },
   alternates: {
     canonical: '/pricing',
