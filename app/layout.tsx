@@ -46,6 +46,9 @@ export const metadata: Metadata = {
     images: ['https://agent-forge.app/og-image.png'],
     creator: '@agentforge',
   },
+  verification: {
+    google: 'LhOG3TBIRmd4I77PzIQPC_LsNxDFAtbJoOhGrbFwu6E',
+  },
   metadataBase: new URL('https://agent-forge.app'),
   alternates: {
     canonical: '/',
