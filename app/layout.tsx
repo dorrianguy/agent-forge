@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     creator: '@agentforge',
   },
   verification: {
-    google: 'LhOG3TBIRmd4I77PzIQPC_LsNxDFAtbJoOhGrbFwu6E',
+    google: '_oaXQaUXOI5B_Qqes6y1yafjyFijeln5uHAJpteyPKo',
   },
   metadataBase: new URL('https://agent-forge.app'),
   alternates: {
