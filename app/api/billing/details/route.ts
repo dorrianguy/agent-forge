@@ -109,14 +109,14 @@ export async function GET(request: NextRequest) {
     // Parse subscription
     let subscription = null;
     if (subscriptionsResult.status === 'fulfilled' && subscriptionsResult.value.data.length > 0) {
-      const sub = subscriptionsResult.value.data[0];
+      const sub = subscriptionsResult.value.data[0] as Record<string, unknown>;
       subscription = {
-        id: sub.id,
-        status: sub.status,
-        plan: sub.metadata?.plan || 'unknown',
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-        cancel_at_period_end: sub.cancel_at_period_end,
+        id: sub.id as string,
+        status: sub.status as string,
+        plan: ((sub.metadata as Record<string, string> | undefined)?.plan) || 'unknown',
+        current_period_end: new Date((sub.current_period_end as number) * 1000).toISOString(),
+        current_period_start: new Date((sub.current_period_start as number) * 1000).toISOString(),
+        cancel_at_period_end: sub.cancel_at_period_end as boolean,
       };
     }
 
