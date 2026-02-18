@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Bot, Sparkles, X, Check, ArrowRight,
   MessageSquare, Headphones, ShoppingCart, Users,
-  Zap, Clock, Globe, Lock, ChevronLeft
+  Zap, Clock, Globe, Lock, ChevronLeft, Mail
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,12 +58,14 @@ const buildStages = [
 
 export default function BuildPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'select' | 'describe' | 'building' | 'complete'>('select');
+  const [step, setStep] = useState<'select' | 'describe' | 'building' | 'email' | 'complete'>('select');
   const [selectedTemplate, setSelectedTemplate] = useState<typeof agentTemplates[0] | null>(null);
   const [description, setDescription] = useState('');
   const [agentName, setAgentName] = useState('');
   const [buildStatus, setBuildStatus] = useState<typeof buildStages[0] | null>(null);
   const [builtAgent, setBuiltAgent] = useState<any>(null);
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const handleSelectTemplate = (template: typeof agentTemplates[0]) => {
     setSelectedTemplate(template);
@@ -116,11 +118,8 @@ export default function BuildPage() {
       setBuildStatus(buildStages[buildStages.length - 1]);
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Store in localStorage (will be saved to backend after auth)
-      localStorage.setItem('pendingAgent', JSON.stringify(agent));
-
       setBuiltAgent(agent);
-      setStep('complete');
+      setStep('email');
     } catch (error: any) {
       clearInterval(progressInterval);
       console.error('Build error:', error);
@@ -138,10 +137,29 @@ export default function BuildPage() {
       setBuildStatus(buildStages[buildStages.length - 1]);
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      localStorage.setItem('pendingAgent', JSON.stringify(fallbackAgent));
       setBuiltAgent(fallbackAgent);
-      setStep('complete');
+      setStep('email');
     }
+  };
+
+  const handleEmailSubmit = () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setEmailError('Email is required to unlock your agent.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    setEmailError('');
+
+    // Store agent + email in localStorage
+    const agentWithEmail = { ...builtAgent, leadEmail: trimmed };
+    localStorage.setItem('pendingAgent', JSON.stringify(agentWithEmail));
+    localStorage.setItem('leadEmail', trimmed);
+
+    setStep('complete');
   };
 
   const handleChoosePlan = () => {
@@ -369,7 +387,72 @@ export default function BuildPage() {
             </motion.div>
           )}
 
-          {/* Step 4: Complete */}
+          {/* Step 4: Email Capture */}
+          {step === 'email' && builtAgent && (
+            <motion.div
+              key="email"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center py-8"
+            >
+              <motion.div
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', damping: 10 }}
+              >
+                <Check className="w-12 h-12 text-white" />
+              </motion.div>
+
+              <h1 className="text-3xl font-bold mb-2">Your agent has been forged!</h1>
+              <p className="text-lg text-white/60 mb-8">
+                Enter your email to unlock {builtAgent.name} and see the full configuration.
+              </p>
+
+              <motion.div
+                className="max-w-md mx-auto"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                  <Mail className="w-10 h-10 text-orange-400 mx-auto mb-4" />
+                  <p className="text-white/70 text-sm mb-4">
+                    We'll send your agent details to this email. No spam, ever.
+                  </p>
+                  <div className="space-y-3">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
+                      placeholder="you@company.com"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20 transition"
+                      autoFocus
+                    />
+                    {emailError && (
+                      <p className="text-red-400 text-sm text-left">{emailError}</p>
+                    )}
+                    <motion.button
+                      onClick={handleEmailSubmit}
+                      className="w-full px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
+                      whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(249, 115, 22, 0.3)' }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Lock className="w-4 h-4" />
+                      Unlock My Agent
+                    </motion.button>
+                  </div>
+                  <p className="text-white/40 text-xs mt-3">
+                    By continuing, you agree to our Terms of Service.
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Step 5: Complete */}
           {step === 'complete' && builtAgent && (
             <motion.div
               key="complete"
