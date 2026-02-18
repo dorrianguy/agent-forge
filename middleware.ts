@@ -16,7 +16,6 @@ const PROTECTED_ROUTES = [
   '/dashboard',
   '/billing',
   '/settings',
-  '/build',
 ];
 
 // Routes that authenticated users should be redirected away from
@@ -26,6 +25,11 @@ const AUTH_ROUTES = ['/login'];
 const PROTECTED_API_ROUTES = [
   '/api/billing',
   '/api/agents',
+];
+
+// Public API sub-routes (exempt from protection above)
+const PUBLIC_API_ROUTES = [
+  '/api/agents/generate',
 ];
 
 // Static/public paths to skip entirely
@@ -114,10 +118,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Protect API routes that require auth
-  const isProtectedApiRoute = PROTECTED_API_ROUTES.some((route) =>
+  // Protect API routes that require auth (except explicitly public sub-routes)
+  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
+  const isProtectedApiRoute =
+    !isPublicApiRoute &&
+    PROTECTED_API_ROUTES.some((route) => pathname.startsWith(route));
 
   if (isProtectedApiRoute && !isAuthenticated) {
     return NextResponse.json(
