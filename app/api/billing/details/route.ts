@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     // Parse subscription
     let subscription = null;
     if (subscriptionsResult.status === 'fulfilled' && subscriptionsResult.value.data.length > 0) {
-      const sub = subscriptionsResult.value.data[0] as Record<string, unknown>;
+      const sub = subscriptionsResult.value.data[0] as unknown as Record<string, unknown>;
       subscription = {
         id: sub.id as string,
         status: sub.status as string,
