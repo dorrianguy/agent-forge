@@ -135,10 +135,10 @@ export async function GET(request: NextRequest) {
         id: inv.id,
         amount_paid: inv.amount_paid,
         currency: inv.currency,
-        status: inv.status,
+        status: inv.status as string | null,
         created: inv.created,
-        invoice_pdf: inv.invoice_pdf,
-        hosted_invoice_url: inv.hosted_invoice_url,
+        invoice_pdf: inv.invoice_pdf ?? null,
+        hosted_invoice_url: inv.hosted_invoice_url ?? null,
       }));
     }
 
