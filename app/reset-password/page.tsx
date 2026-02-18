@@ -22,7 +22,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     const supabase = createClient();
     // Check if we have an active session (Supabase auto-exchanges the token)
-    supabase.auth.getSession().then(({ data, error }) => {
+    supabase.auth.getSession().then(({ data, error }: { data: { session: unknown }; error: unknown }) => {
       if (error || !data.session) {
         // No valid session — token may be expired or invalid
         setValidToken(false);
