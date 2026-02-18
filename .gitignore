@@ -10,6 +10,7 @@ coverage/
 .next/
 out/
 build/
+!app/build/
 
 # Production
 dist/
