@@ -34,6 +34,7 @@
     "resend": "^6.6.0",
     "stripe": "^20.0.0",
     "tailwind-merge": "^2.2.0",
+    "zod": "^4.3.6",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

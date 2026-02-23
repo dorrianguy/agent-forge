@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { checkRateLimitAsync, getRateLimitHeaders } from '@/lib/rateLimit';
+import { CreateAgentSchema, formatZodErrors } from '@/lib/schemas';
 
 /**
  * /api/agents — Server-side CRUD for agents
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse and validate body
+    // Parse and validate body with Zod
     const body = await request.json().catch(() => null);
     if (!body) {
       return NextResponse.json(
@@ -151,36 +152,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, type, description, config } = body;
-
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Agent name is required' },
-        { status: 400 }
-      );
+    const parsed = CreateAgentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(formatZodErrors(parsed.error), { status: 400 });
     }
 
-    if (name.trim().length > 100) {
-      return NextResponse.json(
-        { error: 'Agent name must be 100 characters or less' },
-        { status: 400 }
-      );
-    }
-
-    if (!type || typeof type !== 'string') {
-      return NextResponse.json(
-        { error: 'Agent type is required' },
-        { status: 400 }
-      );
-    }
-
-    const validTypes = ['customer_support', 'sales', 'lead_qualifier', 'booking', 'faq', 'voice', 'email', 'custom'];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        { error: `Invalid agent type. Must be one of: ${validTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
+    const { name, type, description, config } = parsed.data;
 
     // Check agent limit based on plan
     const { data: profile } = await supabase

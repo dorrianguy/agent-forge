@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { logger } from '@/lib/logger';
 import type { DebugInfo, TokenUsage, ToolCall, KnowledgeChunk } from '@/lib/test-types';
 import { calculateCost } from '@/lib/test-types';
+import { getToolsForAgent, type ToolFormat } from '@/lib/tool-registry';
 
 // Lazy-load clients to avoid build-time errors
 let openaiClient: OpenAI | null = null;
@@ -74,14 +75,18 @@ export async function POST(request: NextRequest) {
       })),
     ];
 
-    // Prepare tools if configured
-    const tools = config.tools || [];
+    // Prepare tools - format for the correct provider
+    const agentToolNames: string[] = config.tools?.map((t: any) => t.name || t.function?.name).filter(Boolean) || [];
+    const format: ToolFormat = isAnthropic ? 'anthropic' : 'openai';
+    const formattedTools = agentToolNames.length > 0
+      ? getToolsForAgent(agentToolNames, format)
+      : [];
 
     // Build request payload
     const requestPayload: any = {
       model,
-      messages: isAnthropic 
-        ? apiMessages.filter(m => m.role !== 'system') 
+      messages: isAnthropic
+        ? apiMessages.filter(m => m.role !== 'system')
         : apiMessages,
       temperature: config.temperature || 0.7,
       max_tokens: config.maxTokens || 1024,
@@ -89,10 +94,13 @@ export async function POST(request: NextRequest) {
 
     if (isAnthropic) {
       requestPayload.system = systemPrompt;
-    }
-
-    if (tools.length > 0 && !isAnthropic) {
-      requestPayload.tools = tools;
+      if (formattedTools.length > 0) {
+        requestPayload.tools = formattedTools;
+      }
+    } else {
+      if (formattedTools.length > 0) {
+        requestPayload.tools = formattedTools;
+      }
     }
 
     let response: any;
@@ -207,7 +215,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Non-streaming response
       if (isAnthropic) {
-        response = await getAnthropicClient().messages.create({
+        const anthropicPayload: any = {
           model,
           system: systemPrompt,
           messages: apiMessages.filter(m => m.role !== 'system').map(m => ({
@@ -215,9 +223,26 @@ export async function POST(request: NextRequest) {
             content: m.content,
           })),
           max_tokens: config.maxTokens || 1024,
-        });
+        };
+        if (formattedTools.length > 0) {
+          anthropicPayload.tools = formattedTools;
+        }
 
-        content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+        response = await getAnthropicClient().messages.create(anthropicPayload);
+
+        // Extract text and tool_use blocks
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            content += block.text;
+          } else if (block.type === 'tool_use') {
+            toolCalls.push({
+              id: block.id,
+              name: block.name,
+              arguments: block.input as Record<string, unknown>,
+            });
+          }
+        }
+
         tokens = {
           input: response.usage.input_tokens,
           output: response.usage.output_tokens,

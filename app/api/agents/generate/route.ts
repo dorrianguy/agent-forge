@@ -1,42 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { GeneratedAgentConfigSchema, zodToToolSchema, formatZodErrors } from '@/lib/schemas';
+import {
+  createEscalationContext,
+  recordFailureAndEscalate,
+  type EscalationContext,
+} from '@/lib/model-escalation';
+import { logger } from '@/lib/logger';
 
 // 3 requests per IP per hour
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 
-const SYSTEM_PROMPT = `You are an expert AI agent architect for Agent Forge. Given a user's description of what kind of AI agent they need, generate a complete agent configuration.
+const SYSTEM_PROMPT = `You are an expert AI agent architect for Agent Forge. Given a user's description of what kind of AI agent they need, generate a complete agent configuration by calling the generate_agent_config tool.`;
 
-Return a JSON object with this exact structure:
-{
-  "name": "<agent name from user input>",
-  "type": "<support|sales|lead|custom>",
-  "personality": {
-    "tone": "<professional|friendly|casual|formal>",
-    "style": "<concise|detailed|conversational>",
-    "traits": ["<trait1>", "<trait2>", "<trait3>"]
-  },
-  "systemPrompt": "<A complete system prompt for this agent, 2-4 paragraphs, that defines its role, capabilities, boundaries, and conversation style>",
-  "greeting": "<The first message the agent sends when a user starts a conversation>",
-  "fallbackMessage": "<What the agent says when it can't answer a question>",
-  "escalationTriggers": ["<phrase or condition that should trigger human handoff>"],
-  "knowledgeTopics": ["<topic1>", "<topic2>", "<topic3>"],
-  "suggestedQuestions": ["<question visitors might ask>", "<another question>", "<another>"],
-  "widgetConfig": {
-    "position": "bottom-right",
-    "primaryColor": "#f97316",
-    "chatTitle": "<title for the chat widget>"
-  }
-}
+/**
+ * Claude tool definition derived from the Zod schema.
+ * The LLM returns structured data via tool_use — no JSON parsing/regex needed.
+ */
+const GENERATE_AGENT_TOOL: Anthropic.Tool = {
+  name: 'generate_agent_config',
+  description:
+    'Generate a complete AI agent configuration including personality, system prompt, greeting, widget config, and more.',
+  input_schema: zodToToolSchema(GeneratedAgentConfigSchema) as Anthropic.Tool.InputSchema,
+};
 
-Only return valid JSON. No markdown, no explanation, just the JSON object.`;
+const MAX_ESCALATION_ATTEMPTS = 3;
 
 export async function POST(request: NextRequest) {
   // Rate limit by IP
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   const { allowed, remaining, resetAt } = checkRateLimit(
     `generate:${ip}`,
     RATE_LIMIT_MAX,
@@ -65,14 +62,14 @@ export async function POST(request: NextRequest) {
     if (!description?.trim()) {
       return NextResponse.json(
         { error: 'Agent description is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'AI service not configured' },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -86,61 +83,100 @@ Name: ${name || 'My Agent'}
 Type: ${type || 'custom'}
 Description: ${description}
 
-Generate a complete agent configuration based on this description.`;
+Generate a complete agent configuration by calling the generate_agent_config tool.`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-      system: SYSTEM_PROMPT,
-    });
+    // Model escalation: start cheap, escalate on failures
+    const ctx = createEscalationContext('anthropic', 0.10);
+    let agentConfig: unknown = null;
+    let attempts = 0;
 
-    const content = message.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response format');
-    }
+    while (!agentConfig && attempts < MAX_ESCALATION_ATTEMPTS) {
+      attempts += 1;
 
-    let agentConfig;
-    try {
-      agentConfig = JSON.parse(content.text);
-    } catch {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        agentConfig = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Failed to parse agent configuration');
+      try {
+        const message = await anthropic.messages.create({
+          model: ctx.currentModel,
+          max_tokens: 2048,
+          tools: [GENERATE_AGENT_TOOL],
+          tool_choice: { type: 'tool', name: 'generate_agent_config' },
+          messages: [{ role: 'user', content: userPrompt }],
+          system: SYSTEM_PROMPT,
+        });
+
+        // Extract tool_use block
+        const toolUseBlock = message.content.find(
+          (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+        );
+
+        if (!toolUseBlock) {
+          const { escalated } = recordFailureAndEscalate(ctx, 'empty_response');
+          logger.warn('No tool_use block in response', {
+            model: ctx.currentModel,
+            escalated,
+            attempt: attempts,
+          });
+          continue;
+        }
+
+        // Validate with Zod
+        const parsed = GeneratedAgentConfigSchema.safeParse(toolUseBlock.input);
+        if (!parsed.success) {
+          const { escalated } = recordFailureAndEscalate(ctx, 'tool_schema_error');
+          logger.warn('Tool output failed Zod validation', {
+            model: ctx.currentModel,
+            escalated,
+            attempt: attempts,
+            errors: parsed.error.issues.map((i) => i.message),
+          });
+          continue;
+        }
+
+        agentConfig = parsed.data;
+      } catch (apiError: any) {
+        if (apiError?.status === 401) {
+          return NextResponse.json(
+            { error: 'AI service authentication failed' },
+            { status: 503 },
+          );
+        }
+
+        const { escalated } = recordFailureAndEscalate(ctx, 'json_parse_error');
+        logger.error('API call failed, escalating', {
+          model: ctx.currentModel,
+          escalated,
+          attempt: attempts,
+          error: apiError?.message,
+        });
       }
     }
 
+    if (!agentConfig) {
+      return NextResponse.json(
+        { error: 'Failed to generate agent configuration after multiple attempts' },
+        { status: 500 },
+      );
+    }
+
+    const config = agentConfig as Record<string, unknown>;
     const agent = {
       id: `agent-${Date.now()}`,
-      name: agentConfig.name || name,
-      type: agentConfig.type || type || 'custom',
+      name: (config.name as string) || name,
+      type: (config.type as string) || type || 'custom',
       description,
-      config: agentConfig,
+      config,
       status: 'ready',
       createdAt: new Date().toISOString(),
+      model: ctx.currentModel,
+      attempts,
     };
 
     return NextResponse.json({ agent });
   } catch (error: any) {
-    console.error('Agent generation error:', error);
-
-    if (error?.status === 401) {
-      return NextResponse.json(
-        { error: 'AI service authentication failed' },
-        { status: 503 }
-      );
-    }
+    logger.error('Agent generation error', error);
 
     return NextResponse.json(
       { error: error.message || 'Failed to generate agent' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
