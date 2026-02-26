@@ -3,59 +3,25 @@ import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { escalatingCall, ESCALATION_PRESETS } from '@/lib/model-escalation';
+import { GeneratedAgentConfigSchema, zodToToolSchema, formatZodErrors } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
 
 // 3 requests per IP per hour
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 
-const SYSTEM_PROMPT = `You are an expert AI agent architect for Agent Forge. Given a user's description of what kind of AI agent they need, generate a complete agent configuration.
+const SYSTEM_PROMPT = `You are an expert AI agent architect for Agent Forge. Given a user's description of what kind of AI agent they need, generate a complete agent configuration by calling the generate_agent_config tool.`;
 
-Return a JSON object with this exact structure:
-{
-  "name": "<agent name from user input>",
-  "type": "<support|sales|lead|custom>",
-  "personality": {
-    "tone": "<professional|friendly|casual|formal>",
-    "style": "<concise|detailed|conversational>",
-    "traits": ["<trait1>", "<trait2>", "<trait3>"]
-  },
-  "systemPrompt": "<A complete system prompt for this agent, 2-4 paragraphs, that defines its role, capabilities, boundaries, and conversation style>",
-  "greeting": "<The first message the agent sends when a user starts a conversation>",
-  "fallbackMessage": "<What the agent says when it can't answer a question>",
-  "escalationTriggers": ["<phrase or condition that should trigger human handoff>"],
-  "knowledgeTopics": ["<topic1>", "<topic2>", "<topic3>"],
-  "suggestedQuestions": ["<question visitors might ask>", "<another question>", "<another>"],
-  "widgetConfig": {
-    "position": "bottom-right",
-    "primaryColor": "#f97316",
-    "chatTitle": "<title for the chat widget>"
-  }
-}
-
-Only return valid JSON. No markdown, no explanation, just the JSON object.`;
-
-// Zod schema for the generated agent config — used for model escalation validation
-const GeneratedAgentConfigSchema = z.object({
-  name: z.string().min(1),
-  type: z.string().min(1),
-  personality: z.object({
-    tone: z.string(),
-    style: z.string(),
-    traits: z.array(z.string()),
-  }),
-  systemPrompt: z.string().min(10),
-  greeting: z.string().min(1),
-  fallbackMessage: z.string().min(1),
-  escalationTriggers: z.array(z.string()),
-  knowledgeTopics: z.array(z.string()),
-  suggestedQuestions: z.array(z.string()),
-  widgetConfig: z.object({
-    position: z.string(),
-    primaryColor: z.string(),
-    chatTitle: z.string(),
-  }),
-});
+/**
+ * Claude tool definition derived from the Zod schema.
+ * The LLM returns structured data via tool_use — no JSON parsing/regex needed.
+ */
+const GENERATE_AGENT_TOOL: Anthropic.Tool = {
+  name: 'generate_agent_config',
+  description:
+    'Generate a complete AI agent configuration including personality, system prompt, greeting, widget config, and more.',
+  input_schema: zodToToolSchema(GeneratedAgentConfigSchema) as Anthropic.Tool.InputSchema,
+};
 
 type GeneratedAgentConfig = z.infer<typeof GeneratedAgentConfigSchema>;
 
@@ -110,7 +76,7 @@ Name: ${name || 'My Agent'}
 Type: ${type || 'custom'}
 Description: ${description}
 
-Generate a complete agent configuration based on this description.`;
+Generate a complete agent configuration by calling the generate_agent_config tool.`;
 
     // Use model escalation: start cheap, escalate on validation failure
     const escalationModels = process.env.ANTHROPIC_API_KEY
@@ -189,12 +155,20 @@ Generate a complete agent configuration based on this description.`;
       costSaved = 0;
     }
 
+    if (!agentConfig) {
+      return NextResponse.json(
+        { error: 'Failed to generate agent configuration after multiple attempts' },
+        { status: 500 },
+      );
+    }
+
+    const config = agentConfig as Record<string, unknown>;
     const agent = {
       id: `agent-${Date.now()}`,
-      name: agentConfig.name || name,
-      type: agentConfig.type || type || 'custom',
+      name: (config.name as string) || name,
+      type: (config.type as string) || type || 'custom',
       description,
-      config: agentConfig,
+      config,
       status: 'ready',
       createdAt: new Date().toISOString(),
       _meta: {

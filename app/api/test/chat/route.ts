@@ -9,6 +9,7 @@ import { ToolDefinitionSchema } from '@/lib/schemas/tool';
 import type { ToolDefinition, ToolSearchConfig } from '@/lib/schemas/tool';
 import type { DebugInfo, TokenUsage, ToolCall, KnowledgeChunk } from '@/lib/test-types';
 import { calculateCost } from '@/lib/test-types';
+import { getToolsForAgent, type ToolFormat } from '@/lib/tool-registry';
 
 // Lazy-load clients to avoid build-time errors
 let openaiClient: OpenAI | null = null;
