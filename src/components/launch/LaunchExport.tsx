@@ -15,6 +15,9 @@ import {
   Mail,
   Newspaper,
   Share2,
+  Briefcase,
+  Users,
+  Video,
 } from 'lucide-react';
 import type {
   AssetType,
@@ -25,8 +28,8 @@ import type {
   PressReleaseAsset,
   SocialPostsAsset,
   ValidationResult,
-} from '@/lib/launch/types';
-import { ASSET_LABELS } from '@/lib/launch/propagator';
+} from '@/src/lib/launch/types';
+import { ASSET_LABELS } from '@/src/lib/launch/propagator';
 
 // ---------------------------------------------------------------------------
 // Markdown Formatters
@@ -310,6 +313,9 @@ const ASSET_EXPORT_ICONS: Record<AssetType, React.ComponentType<{ className?: st
   emailSequence: Mail,
   pressRelease: Newspaper,
   socialPosts: Share2,
+  salesEnablement: Briefcase,
+  partnerKit: Users,
+  videoScript: Video,
 };
 
 interface LaunchExportProps {

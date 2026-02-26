@@ -12,16 +12,16 @@
 // =============================================================================
 
 import type { NextApiResponse } from 'next';
-import type { GeneratedAssets } from '@/lib/launch/types';
-import { validateAssets } from '@/lib/launch/validator';
+import type { GeneratedAssets } from '@/src/lib/launch/types';
+import { validateAssets } from '@/src/lib/launch/validator';
 import {
   requireAuth,
   validateRequest,
   ValidateRequestSchema,
   getValidationLimiter,
   getClientIP,
-} from '@/lib/security';
-import type { AuthenticatedRequest } from '@/lib/security';
+} from '@/src/lib/security';
+import type { AuthenticatedRequest } from '@/src/lib/security';
 
 export default requireAuth(function handler(
   req: AuthenticatedRequest,
@@ -70,7 +70,7 @@ export default requireAuth(function handler(
   // Business Logic
   // -------------------------------------------------------------------------
   try {
-    const results = validateAssets(brief, assets as GeneratedAssets);
+    const results = validateAssets(brief, assets as unknown as GeneratedAssets);
     return res.status(200).json({ results });
   } catch (err) {
     console.error('[launch/validate] Validation error:', err);

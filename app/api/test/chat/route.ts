@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
               finishReason = finalMessage.stop_reason || 'stop';
             } else {
               const openaiStream = await getOpenAIClient().chat.completions.create({
-                ...(requestPayload as OpenAI.ChatCompletionCreateParamsStreaming),
+                ...(requestPayload as unknown as OpenAI.ChatCompletionCreateParamsStreaming),
                 stream: true,
               });
 
@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
     } else {
       const openaiResponse =
         await getOpenAIClient().chat.completions.create(
-          requestPayload as OpenAI.ChatCompletionCreateParamsNonStreaming,
+          requestPayload as unknown as OpenAI.ChatCompletionCreateParamsNonStreaming,
         );
 
       response = openaiResponse;
@@ -379,16 +379,17 @@ export async function POST(request: NextRequest) {
       // Handle tool calls (including tool_search)
       if (openaiResponse.choices[0]?.message?.tool_calls) {
         for (const tc of openaiResponse.choices[0].message.tool_calls) {
-          const args = JSON.parse(tc.function.arguments || '{}');
+          const tcFn = (tc as unknown as OpenAI.ChatCompletionMessageFunctionToolCall).function;
+          const args = JSON.parse(tcFn.arguments || '{}');
           toolCalls.push({
             id: tc.id,
-            name: tc.function.name,
+            name: tcFn.name,
             arguments: args,
           });
 
           // Handle tool_search meta-tool
           if (
-            isToolSearchCall(tc.function.name) &&
+            isToolSearchCall(tcFn.name) &&
             activeDeferredTools.length > 0
           ) {
             const query = (args.query as string) || '';

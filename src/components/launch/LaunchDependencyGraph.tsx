@@ -35,12 +35,12 @@ import {
   ClipboardList,
   Activity,
 } from 'lucide-react';
-import type { AssetType, GeneratedAssets, GenerationStatus, VariantEligibleAsset } from '@/lib/launch/types';
+import type { AssetType, GeneratedAssets, GenerationStatus, VariantEligibleAsset } from '@/src/lib/launch/types';
 import {
   buildDependencyGraph,
   ASSET_LABELS,
   getTransitiveDependents,
-} from '@/lib/launch/propagator';
+} from '@/src/lib/launch/propagator';
 
 // ---------------------------------------------------------------------------
 // Custom Node Component
@@ -109,7 +109,7 @@ function AssetNode({ data }: NodeProps<AssetNodeData>) {
           <div className="flex items-center gap-1.5">
             <div className="text-sm font-medium text-zinc-100 truncate">{data.label}</div>
             {data.hasVariants && (
-              <GitCompare className="w-3 h-3 text-purple-400 flex-shrink-0" title="Has A/B variants" />
+              <GitCompare className="w-3 h-3 text-purple-400 flex-shrink-0" aria-label="Has A/B variants" />
             )}
           </div>
           <div className={`flex items-center gap-1 text-xs ${data.isStale ? 'text-amber-400' : colors.text} mt-0.5`}>

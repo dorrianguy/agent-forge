@@ -20,8 +20,8 @@ import type {
   VariantAngle,
   VariantEligibleAsset,
   AssetVariant,
-} from '@/lib/launch/types';
-import { ASSET_LABELS } from '@/lib/launch/propagator';
+} from '@/src/lib/launch/types';
+import { ASSET_LABELS } from '@/src/lib/launch/propagator';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -120,7 +120,7 @@ function VariantCard({ variant, side, onPickWinner }: {
       </div>
 
       {/* Content preview */}
-      {variant.content && typeof variant.content === 'object' && (
+      {!!variant.content && typeof variant.content === 'object' && (
         <div className="bg-zinc-800/50 rounded-lg p-3 max-h-48 overflow-y-auto">
           <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1 block">Content Preview</label>
           <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono leading-relaxed">
