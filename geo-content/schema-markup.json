@@ -1,0 +1,242 @@
+{
+  "_comment": "JSON-LD Schema Markup for Agent Forge — Copy-paste into page <head> tags",
+  
+  "homepage": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Agent Forge",
+    "url": "https://agent-forge.app",
+    "description": "No-code AI agent builder with voice, phone, and multi-channel capabilities. Build and deploy AI agents in 60 seconds without writing code.",
+    "applicationCategory": "BusinessApplication",
+    "applicationSubCategory": "AI Agent Builder",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "USD",
+      "lowPrice": "79",
+      "highPrice": "799",
+      "offerCount": "3",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Starter",
+          "price": "79",
+          "priceCurrency": "USD",
+          "priceValidUntil": "2026-12-31",
+          "billingIncrement": "P1M",
+          "description": "1 AI agent, 1,000 conversations/month, 100 voice minutes, 1 phone number, basic analytics"
+        },
+        {
+          "@type": "Offer",
+          "name": "Professional",
+          "price": "249",
+          "priceCurrency": "USD",
+          "priceValidUntil": "2026-12-31",
+          "billingIncrement": "P1M",
+          "description": "5 AI agents, 10,000 conversations/month, 500 voice minutes, 5 phone numbers, advanced analytics, API access, batch calling"
+        },
+        {
+          "@type": "Offer",
+          "name": "Enterprise",
+          "price": "799",
+          "priceCurrency": "USD",
+          "priceValidUntil": "2026-12-31",
+          "billingIncrement": "P1M",
+          "description": "Unlimited AI agents and conversations, 2,000 voice minutes, unlimited phone numbers, white-label, on-premise, custom TTS"
+        }
+      ]
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "2500",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "featureList": [
+      "No-code AI agent builder",
+      "Voice agents with phone integration",
+      "Dedicated phone numbers included",
+      "TTS voice cloning",
+      "Multi-channel deployment (web, WhatsApp, Slack, Discord, SMS, phone, email)",
+      "Real-time analytics",
+      "SOC 2 compliant",
+      "Enterprise security with on-premise option",
+      "White-label for agencies",
+      "Batch calling campaigns",
+      "60-second deployment",
+      "14-day free trial"
+    ],
+    "screenshot": "https://agent-forge.app/og-image.png",
+    "softwareVersion": "1.0",
+    "datePublished": "2025-01-01",
+    "author": {
+      "@type": "Organization",
+      "name": "Agent Forge",
+      "url": "https://agent-forge.app"
+    }
+  },
+
+  "pricing_page": {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Agent Forge Pricing",
+    "url": "https://agent-forge.app/pricing",
+    "description": "Agent Forge pricing plans: Starter ($79/mo), Professional ($249/mo), Enterprise ($799/mo). All plans include voice minutes and phone numbers. 14-day free trial.",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Starter Plan",
+          "description": "$79/month — 1 AI agent, 1,000 conversations, 100 voice minutes, 1 phone number"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Professional Plan",
+          "description": "$249/month — 5 AI agents, 10,000 conversations, 500 voice minutes, 5 phone numbers, API access"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Enterprise Plan",
+          "description": "$799/month — Unlimited agents and conversations, 2,000 voice minutes, unlimited phone numbers, white-label"
+        }
+      ]
+    }
+  },
+
+  "faq_page": {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is Agent Forge?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Agent Forge is a no-code AI agent builder that lets businesses create, deploy, and manage voice and text AI agents without writing code. Plans start at $79/month with a 14-day free trial."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Agent Forge make phone calls?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Agent Forge has native voice capabilities including inbound and outbound phone calls. Every plan includes dedicated phone numbers and voice minutes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much does Agent Forge cost?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Agent Forge offers three plans: Starter at $79/month, Professional at $249/month, and Enterprise at $799/month. All plans include a 14-day free trial with no credit card required."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Agent Forge support white-labeling?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Professional plans include custom branding, and Enterprise plans offer full white-label capabilities including your own domain and client workspaces."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What channels does Agent Forge support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Agent Forge supports website chat, WhatsApp, Slack, Discord, SMS, email, and phone (inbound and outbound). All channels work from a single agent configuration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does it take to set up Agent Forge?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The average user goes from signup to deployed agent in under 60 seconds. No onboarding calls, tutorials, or technical skills required."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Agent Forge SOC 2 compliant?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Agent Forge is SOC 2 compliant with end-to-end encryption. Enterprise customers get additional security features including on-premise deployment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is TTS voice cloning?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "TTS voice cloning is an Enterprise feature that lets you create a custom AI voice matching your brand. Provide audio samples and Agent Forge generates a synthetic voice for your agents."
+        }
+      }
+    ]
+  },
+
+  "comparison_pages": {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Agent Forge vs Competitors",
+    "description": "Compare Agent Forge with Botpress, Voiceflow, Vapi, Bland AI, and other AI agent builders.",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "url": "https://agent-forge.app/compare/botpress",
+          "name": "Agent Forge vs Botpress"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "url": "https://agent-forge.app/compare/voiceflow",
+          "name": "Agent Forge vs Voiceflow"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "url": "https://agent-forge.app/compare/vapi",
+          "name": "Agent Forge vs Vapi"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "url": "https://agent-forge.app/compare/bland-ai",
+          "name": "Agent Forge vs Bland AI"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "url": "https://agent-forge.app/compare/chatfuel",
+          "name": "Agent Forge vs Chatfuel"
+        }
+      ]
+    }
+  },
+
+  "organization": {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Agent Forge",
+    "url": "https://agent-forge.app",
+    "logo": "https://agent-forge.app/logo.png",
+    "description": "No-code AI agent builder with voice, phone, and multi-channel capabilities.",
+    "foundingDate": "2025",
+    "sameAs": [
+      "https://twitter.com/agentforge",
+      "https://linkedin.com/company/agent-forge"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "support@agent-forge.app",
+      "contactType": "customer support"
+    }
+  }
+}

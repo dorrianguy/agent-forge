@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { escalatingCall, ESCALATION_PRESETS } from '@/lib/model-escalation';
+import { logger } from '@/lib/logger';
 
 // 3 requests per IP per hour
 const RATE_LIMIT_MAX = 3;
@@ -32,11 +35,36 @@ Return a JSON object with this exact structure:
 
 Only return valid JSON. No markdown, no explanation, just the JSON object.`;
 
+// Zod schema for the generated agent config — used for model escalation validation
+const GeneratedAgentConfigSchema = z.object({
+  name: z.string().min(1),
+  type: z.string().min(1),
+  personality: z.object({
+    tone: z.string(),
+    style: z.string(),
+    traits: z.array(z.string()),
+  }),
+  systemPrompt: z.string().min(10),
+  greeting: z.string().min(1),
+  fallbackMessage: z.string().min(1),
+  escalationTriggers: z.array(z.string()),
+  knowledgeTopics: z.array(z.string()),
+  suggestedQuestions: z.array(z.string()),
+  widgetConfig: z.object({
+    position: z.string(),
+    primaryColor: z.string(),
+    chatTitle: z.string(),
+  }),
+});
+
+type GeneratedAgentConfig = z.infer<typeof GeneratedAgentConfigSchema>;
+
 export async function POST(request: NextRequest) {
   // Rate limit by IP
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   const { allowed, remaining, resetAt } = checkRateLimit(
     `generate:${ip}`,
     RATE_LIMIT_MAX,
@@ -65,20 +93,16 @@ export async function POST(request: NextRequest) {
     if (!description?.trim()) {
       return NextResponse.json(
         { error: 'Agent description is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: 'AI service not configured' },
-        { status: 503 }
+        { status: 503 },
       );
     }
-
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
 
     const userPrompt = `Create an AI agent with these specifications:
 
@@ -88,33 +112,81 @@ Description: ${description}
 
 Generate a complete agent configuration based on this description.`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-      system: SYSTEM_PROMPT,
-    });
+    // Use model escalation: start cheap, escalate on validation failure
+    const escalationModels = process.env.ANTHROPIC_API_KEY
+      ? [...ESCALATION_PRESETS.anthropic_balanced]
+      : [...ESCALATION_PRESETS.balanced];
 
-    const content = message.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response format');
-    }
+    let agentConfig: GeneratedAgentConfig;
+    let usedModel: string;
+    let attempts: number;
+    let costSaved: number;
 
-    let agentConfig;
     try {
-      agentConfig = JSON.parse(content.text);
+      const escalationResult = await escalatingCall(
+        GeneratedAgentConfigSchema,
+        userPrompt,
+        {
+          models: escalationModels,
+          systemPrompt: SYSTEM_PROMPT,
+          temperature: 0.7,
+          maxTokens: 2048,
+        },
+      );
+
+      agentConfig = escalationResult.result;
+      usedModel = escalationResult.model;
+      attempts = escalationResult.attempts;
+      costSaved = escalationResult.costSaved;
+
+      logger.info('Agent generated via escalation', {
+        model: usedModel,
+        attempts,
+        costSaved: costSaved.toFixed(6),
+      });
     } catch {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        agentConfig = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Failed to parse agent configuration');
+      // Fallback: direct Anthropic call if escalation fails entirely
+      logger.info('Escalation exhausted, falling back to direct Anthropic call');
+
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return NextResponse.json(
+          { error: 'AI service not available' },
+          { status: 503 },
+        );
       }
+
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: userPrompt }],
+        system: SYSTEM_PROMPT,
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response format');
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(content.text);
+      } catch {
+        const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Failed to parse agent configuration');
+        }
+      }
+
+      agentConfig = parsed;
+      usedModel = 'claude-sonnet-4-5-20250929';
+      attempts = 1;
+      costSaved = 0;
     }
 
     const agent = {
@@ -125,22 +197,28 @@ Generate a complete agent configuration based on this description.`;
       config: agentConfig,
       status: 'ready',
       createdAt: new Date().toISOString(),
+      _meta: {
+        generatedBy: usedModel,
+        escalationAttempts: attempts,
+        costSaved: costSaved,
+      },
     };
 
     return NextResponse.json({ agent });
-  } catch (error: any) {
-    console.error('Agent generation error:', error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Agent generation error', err);
 
-    if (error?.status === 401) {
+    if ('status' in err && (err as { status: number }).status === 401) {
       return NextResponse.json(
         { error: 'AI service authentication failed' },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to generate agent' },
-      { status: 500 }
+      { error: err.message || 'Failed to generate agent' },
+      { status: 500 },
     );
   }
 }
