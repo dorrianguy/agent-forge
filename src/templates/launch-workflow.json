@@ -1,0 +1,12 @@
+{
+  "id": "product-launch",
+  "name": "Product Launch Orchestrator",
+  "description": "Generate a complete, consistent launch package — landing page, emails, press release, social posts, sales enablement, partner kits, and video scripts — from a single brief. With built-in A/B variants and post-launch feedback loops.",
+  "icon": "🚀",
+  "category": "workflows",
+  "isWorkflow": true,
+  "steps": ["brief", "cmd", "landing-page", "emails", "press-release", "social", "sales-enablement", "partner-kit", "video-scripts", "validate", "export", "retro"],
+  "tags": ["launch", "marketing", "workflow", "orchestration", "sales", "video"],
+  "defaultModel": "gpt-4o",
+  "defaultTemperature": 0.7
+}

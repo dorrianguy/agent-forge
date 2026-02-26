@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { escalatingCall, ESCALATION_PRESETS } from '@/lib/model-escalation';
 import { GeneratedAgentConfigSchema, zodToToolSchema, formatZodErrors } from '@/lib/schemas';
-import {
-  createEscalationContext,
-  recordFailureAndEscalate,
-  type EscalationContext,
-} from '@/lib/model-escalation';
 import { logger } from '@/lib/logger';
 
 // 3 requests per IP per hour
@@ -26,7 +23,7 @@ const GENERATE_AGENT_TOOL: Anthropic.Tool = {
   input_schema: zodToToolSchema(GeneratedAgentConfigSchema) as Anthropic.Tool.InputSchema,
 };
 
-const MAX_ESCALATION_ATTEMPTS = 3;
+type GeneratedAgentConfig = z.infer<typeof GeneratedAgentConfigSchema>;
 
 export async function POST(request: NextRequest) {
   // Rate limit by IP
@@ -66,16 +63,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: 'AI service not configured' },
         { status: 503 },
       );
     }
-
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
 
     const userPrompt = `Create an AI agent with these specifications:
 
@@ -85,69 +78,81 @@ Description: ${description}
 
 Generate a complete agent configuration by calling the generate_agent_config tool.`;
 
-    // Model escalation: start cheap, escalate on failures
-    const ctx = createEscalationContext('anthropic', 0.10);
-    let agentConfig: unknown = null;
-    let attempts = 0;
+    // Use model escalation: start cheap, escalate on validation failure
+    const escalationModels = process.env.ANTHROPIC_API_KEY
+      ? [...ESCALATION_PRESETS.anthropic_balanced]
+      : [...ESCALATION_PRESETS.balanced];
 
-    while (!agentConfig && attempts < MAX_ESCALATION_ATTEMPTS) {
-      attempts += 1;
+    let agentConfig: GeneratedAgentConfig;
+    let usedModel: string;
+    let attempts: number;
+    let costSaved: number;
 
-      try {
-        const message = await anthropic.messages.create({
-          model: ctx.currentModel,
-          max_tokens: 2048,
-          tools: [GENERATE_AGENT_TOOL],
-          tool_choice: { type: 'tool', name: 'generate_agent_config' },
-          messages: [{ role: 'user', content: userPrompt }],
-          system: SYSTEM_PROMPT,
-        });
+    try {
+      const escalationResult = await escalatingCall(
+        GeneratedAgentConfigSchema,
+        userPrompt,
+        {
+          models: escalationModels,
+          systemPrompt: SYSTEM_PROMPT,
+          temperature: 0.7,
+          maxTokens: 2048,
+        },
+      );
 
-        // Extract tool_use block
-        const toolUseBlock = message.content.find(
-          (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+      agentConfig = escalationResult.result;
+      usedModel = escalationResult.model;
+      attempts = escalationResult.attempts;
+      costSaved = escalationResult.costSaved;
+
+      logger.info('Agent generated via escalation', {
+        model: usedModel,
+        attempts,
+        costSaved: costSaved.toFixed(6),
+      });
+    } catch {
+      // Fallback: direct Anthropic call if escalation fails entirely
+      logger.info('Escalation exhausted, falling back to direct Anthropic call');
+
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return NextResponse.json(
+          { error: 'AI service not available' },
+          { status: 503 },
         );
-
-        if (!toolUseBlock) {
-          const { escalated } = recordFailureAndEscalate(ctx, 'empty_response');
-          logger.warn('No tool_use block in response', {
-            model: ctx.currentModel,
-            escalated,
-            attempt: attempts,
-          });
-          continue;
-        }
-
-        // Validate with Zod
-        const parsed = GeneratedAgentConfigSchema.safeParse(toolUseBlock.input);
-        if (!parsed.success) {
-          const { escalated } = recordFailureAndEscalate(ctx, 'tool_schema_error');
-          logger.warn('Tool output failed Zod validation', {
-            model: ctx.currentModel,
-            escalated,
-            attempt: attempts,
-            errors: parsed.error.issues.map((i) => i.message),
-          });
-          continue;
-        }
-
-        agentConfig = parsed.data;
-      } catch (apiError: any) {
-        if (apiError?.status === 401) {
-          return NextResponse.json(
-            { error: 'AI service authentication failed' },
-            { status: 503 },
-          );
-        }
-
-        const { escalated } = recordFailureAndEscalate(ctx, 'json_parse_error');
-        logger.error('API call failed, escalating', {
-          model: ctx.currentModel,
-          escalated,
-          attempt: attempts,
-          error: apiError?.message,
-        });
       }
+
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: userPrompt }],
+        system: SYSTEM_PROMPT,
+      });
+
+      const content = message.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response format');
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(content.text);
+      } catch {
+        const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Failed to parse agent configuration');
+        }
+      }
+
+      agentConfig = parsed;
+      usedModel = 'claude-sonnet-4-5-20250929';
+      attempts = 1;
+      costSaved = 0;
     }
 
     if (!agentConfig) {
@@ -166,16 +171,27 @@ Generate a complete agent configuration by calling the generate_agent_config too
       config,
       status: 'ready',
       createdAt: new Date().toISOString(),
-      model: ctx.currentModel,
-      attempts,
+      _meta: {
+        generatedBy: usedModel,
+        escalationAttempts: attempts,
+        costSaved: costSaved,
+      },
     };
 
     return NextResponse.json({ agent });
-  } catch (error: any) {
-    logger.error('Agent generation error', error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Agent generation error', err);
+
+    if ('status' in err && (err as { status: number }).status === 401) {
+      return NextResponse.json(
+        { error: 'AI service authentication failed' },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to generate agent' },
+      { error: err.message || 'Failed to generate agent' },
       { status: 500 },
     );
   }
