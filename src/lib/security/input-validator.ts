@@ -55,7 +55,7 @@ export function sanitizeString(input: string): string {
  * @param maxLength - Maximum allowed string length (default: 1000)
  * @returns Zod string schema that sanitizes input
  */
-export function safeString(maxLength = 1000): z.ZodPipeline<z.ZodEffects<z.ZodString, string, string>, z.ZodString> {
+export function safeString(maxLength = 1000) {
   return z
     .string()
     .transform(sanitizeString)
@@ -68,7 +68,7 @@ export function safeString(maxLength = 1000): z.ZodPipeline<z.ZodEffects<z.ZodSt
  * @param maxLength - Maximum allowed string length (default: 1000)
  * @returns Optional Zod string schema that sanitizes input
  */
-export function optionalSafeString(maxLength = 1000): z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodString, string, string>, z.ZodString>> {
+export function optionalSafeString(maxLength = 1000) {
   return safeString(maxLength).optional();
 }
 
