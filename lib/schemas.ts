@@ -173,7 +173,8 @@ export type PaginationInput = z.infer<typeof PaginationSchema>;
  * Convert a Zod schema to JSON Schema for LLM tool definitions.
  */
 export function zodToToolSchema(schema: z.ZodType): Record<string, unknown> {
-  return zodToJsonSchema(schema) as Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return zodToJsonSchema(schema as any) as Record<string, unknown>;
 }
 
 /**
