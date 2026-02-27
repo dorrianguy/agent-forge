@@ -25,7 +25,8 @@ export function toJsonSchema(
   schema: z.ZodType,
   name?: string,
 ): Record<string, unknown> {
-  const raw = zodToJsonSchema(schema, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = zodToJsonSchema(schema as any, {
     name: name ?? 'Schema',
     $refStrategy: 'none', // inline all refs for LLM compatibility
     errorMessages: false,
