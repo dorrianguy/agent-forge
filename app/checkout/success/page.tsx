@@ -9,7 +9,7 @@ import { getProfile } from '@/lib/auth';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const sessionId = searchParams?.get('session_id');
   const [loading, setLoading] = useState(true);
   const [sessionDetails, setSessionDetails] = useState<any>(null);
 
