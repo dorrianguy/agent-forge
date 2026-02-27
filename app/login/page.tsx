@@ -17,8 +17,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const redirect = searchParams.get('redirect') || '/dashboard';
-  const action = searchParams.get('action');
+  const redirect = searchParams?.get('redirect') || '/dashboard';
+  const action = searchParams?.get('action');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

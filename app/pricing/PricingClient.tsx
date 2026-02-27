@@ -25,8 +25,8 @@ function PricingContent({ plans }: PricingClientProps) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const isRequired = searchParams.get('required') === 'true';
-  const fromBuild = searchParams.get('from') === 'build';
+  const isRequired = searchParams?.get('required') === 'true';
+  const fromBuild = searchParams?.get('from') === 'build';
 
   React.useEffect(() => {
     getUser().then(user => setIsAuthenticated(!!user)).catch(() => setIsAuthenticated(false));
