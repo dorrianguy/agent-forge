@@ -380,7 +380,7 @@ export class ToolRegistry {
       case 'array':
         return z.array(z.unknown());
       case 'object':
-        return z.record(z.unknown());
+        return z.record(z.string(), z.unknown());
       default:
         return z.unknown();
     }

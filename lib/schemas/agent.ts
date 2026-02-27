@@ -67,7 +67,7 @@ export const AgentConfigSchema = z
     model: z.string().optional(),
     temperature: z.number().min(0).max(2).optional(),
     maxTokens: z.number().int().min(1).max(128000).optional(),
-    tools: z.array(z.record(z.unknown())).optional(),
+    tools: z.array(z.record(z.string(), z.unknown())).optional(),
     knowledgeBase: z
       .array(
         z.object({
@@ -76,7 +76,7 @@ export const AgentConfigSchema = z
         }),
       )
       .optional(),
-    toolExamples: z.record(z.array(z.record(z.unknown()))).optional(),
+    toolExamples: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))).optional(),
     escalation: ModelEscalationConfigSchema.optional(),
   })
   .passthrough(); // allow additional provider-specific keys

@@ -124,7 +124,7 @@ export const APICallNodeDataSchema = BaseNodeDataSchema.extend({
   type: z.literal('apiCall'),
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   url: z.string().min(1),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
   bodyType: z.enum(['json', 'form', 'raw']).optional(),
   responseVariable: z.string().optional(),
@@ -212,7 +212,7 @@ export const FlowEdgeSchema = z.object({
   targetHandle: z.string().optional(),
   label: z.string().optional(),
   animated: z.boolean().optional(),
-  style: z.record(z.union([z.string(), z.number()])).optional(),
+  style: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
 });
 
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;

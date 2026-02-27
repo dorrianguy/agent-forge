@@ -162,7 +162,7 @@ export const GenerateRequestSchema = z.object({
 /** Schema for POST /api/launch/validate */
 export const ValidateRequestSchema = z.object({
   brief: LaunchBriefSchema,
-  assets: z.record(z.unknown()),
+  assets: z.record(z.string(), z.unknown()),
 });
 
 // ---------------------------------------------------------------------------

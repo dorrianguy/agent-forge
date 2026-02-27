@@ -49,7 +49,7 @@ export type ToolHandlerType = (typeof TOOL_HANDLER_TYPES)[number];
 
 export const ToolHandlerSchema = z.object({
   type: z.enum(TOOL_HANDLER_TYPES),
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
 });
 
 export type ToolHandler = z.infer<typeof ToolHandlerSchema>;
@@ -59,7 +59,7 @@ export type ToolHandler = z.infer<typeof ToolHandlerSchema>;
 // ============================================================
 
 export const ToolInputExampleSchema = z.object({
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   output: z.unknown().optional(),
   description: z.string().optional(),
 });
