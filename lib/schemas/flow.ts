@@ -148,7 +148,7 @@ const WorkingHoursSchema = z.object({
   enabled: z.boolean(),
   timezone: z.string().optional(),
   schedule: z
-    .record(z.object({ start: z.string(), end: z.string() }))
+    .record(z.string(), z.object({ start: z.string(), end: z.string() }))
     .optional(),
   offlineMessage: z.string().optional(),
 });
