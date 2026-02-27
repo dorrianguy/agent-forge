@@ -209,7 +209,8 @@ export class ToolRegistry {
       );
     }
 
-    const result = await tool.handler(parseResult.data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await tool.handler(parseResult.data as Record<string, unknown>);
     return { result, validated: true };
   }
 
