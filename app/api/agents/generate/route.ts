@@ -100,7 +100,7 @@ Generate a complete agent configuration by calling the generate_agent_config too
         },
       );
 
-      agentConfig = escalationResult.result;
+      agentConfig = escalationResult.result as GeneratedAgentConfig;
       usedModel = escalationResult.model;
       attempts = escalationResult.attempts;
       costSaved = escalationResult.costSaved;

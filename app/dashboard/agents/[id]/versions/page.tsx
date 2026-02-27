@@ -27,7 +27,7 @@ import PublishButton from '@/components/agents/PublishButton';
 export default function VersionHistoryPage() {
   const params = useParams();
   const router = useRouter();
-  const agentId = params.id as string;
+  const agentId = (params?.id ?? '') as string;
 
   // Agent data
   const [agent, setAgent] = useState<Agent | null>(null);

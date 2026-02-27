@@ -14,11 +14,11 @@ export default function PricingPage() {
       interval: plans.starter.interval,
       features: plans.starter.features,
     },
-    professional: {
-      name: plans.professional.name,
-      price: plans.professional.price,
-      interval: plans.professional.interval,
-      features: plans.professional.features,
+    pro: {
+      name: plans.pro.name,
+      price: plans.pro.price,
+      interval: plans.pro.interval,
+      features: plans.pro.features,
     },
     enterprise: {
       name: plans.enterprise.name,
@@ -34,7 +34,7 @@ export default function PricingPage() {
     '@type': 'WebPage',
     name: 'Agent Forge Pricing',
     url: 'https://agent-forge.app/pricing',
-    description: `Agent Forge pricing plans: Starter ($${plans.starter.price}/mo), Professional ($${plans.professional.price}/mo), Enterprise ($${plans.enterprise.price}/mo). All plans include voice minutes and phone numbers. 14-day free trial.`,
+    description: `Agent Forge pricing plans: Starter ($${plans.starter.price}/mo), Professional ($${plans.pro.price}/mo), Enterprise ($${plans.enterprise.price}/mo). All plans include voice minutes and phone numbers. 14-day free trial.`,
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: [
@@ -47,8 +47,8 @@ export default function PricingPage() {
         {
           '@type': 'ListItem',
           position: 2,
-          name: `${plans.professional.name} Plan`,
-          description: `$${plans.professional.price}/month — ${plans.professional.features.join(', ')}`,
+          name: `${plans.pro.name} Plan`,
+          description: `$${plans.pro.price}/month — ${plans.pro.features.join(', ')}`,
         },
         {
           '@type': 'ListItem',

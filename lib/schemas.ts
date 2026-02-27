@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 // ============================================================
 // PRIMITIVES
@@ -51,19 +52,14 @@ export const UpdateAgentSchema = z
     status: z.enum(AGENT_STATUSES).optional(),
     config: z.record(z.string(), z.unknown()).optional(),
   })
-  .check(
-    (ctx) => {
-      const d = ctx.value;
-      if (!Object.values(d).some((v) => v !== undefined)) {
-        ctx.issues.push({
-          code: 'custom',
-          message: 'At least one field must be provided for update',
-          input: d,
-          path: [],
-        });
-      }
-    },
-  );
+  .superRefine((d, ctx) => {
+    if (!Object.values(d).some((v) => v !== undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one field must be provided for update',
+      });
+    }
+  });
 
 // ============================================================
 // AGENT GENERATION (structured output from LLM)
@@ -175,10 +171,9 @@ export type PaginationInput = z.infer<typeof PaginationSchema>;
 
 /**
  * Convert a Zod schema to JSON Schema for LLM tool definitions.
- * Uses Zod v4's built-in toJSONSchema.
  */
 export function zodToToolSchema(schema: z.ZodType): Record<string, unknown> {
-  return z.toJSONSchema(schema) as Record<string, unknown>;
+  return zodToJsonSchema(schema) as Record<string, unknown>;
 }
 
 /**
@@ -199,3 +194,44 @@ export function formatZodErrors(error: z.ZodError): {
     details,
   };
 }
+
+// ============================================================
+// BACKWARD-COMPAT ALIASES (for validation.ts and other consumers)
+// ============================================================
+
+export const VALID_AGENT_TYPES = AGENT_TYPES;
+export const VALID_AGENT_STATUSES = AGENT_STATUSES;
+
+export const buildTTSInputSchema = ttsSchemaForAuth;
+
+/** Pagination schema with sortBy/sortOrder field names matching PaginationInput interface. */
+export const paginationWithSort = (allowedSortFields: string[]) =>
+  z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    sortBy: z.enum(allowedSortFields as [string, ...string[]]).optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
+  });
+
+export const sanitizeString = sanitize;
+
+export const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
+  const result: Record<string, unknown> = {};
+  Object.keys(obj).forEach((key) => {
+    const val = obj[key];
+    result[key] = typeof val === 'string' ? sanitize(val) : val;
+  });
+  return result as T;
+};
+
+export const PLAN_AGENT_LIMITS = {
+  free: 0,
+  starter: 1,
+  pro: 5,
+  scale: -1,
+  enterprise: -1,
+} as const;
+
+export type AgentType = (typeof AGENT_TYPES)[number];
+export type AgentStatus = (typeof AGENT_STATUSES)[number];
+export type PlanType = (typeof VALID_PLANS)[number];
