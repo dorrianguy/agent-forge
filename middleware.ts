@@ -65,6 +65,22 @@ export async function middleware(request: NextRequest) {
     'Permissions-Policy',
     'camera=(), microphone=(self), geolocation=()'
   );
+  response.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-* required by Next.js
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com",
+      "frame-ancestors 'none'",
+    ].join('; ')
+  );
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=63072000; includeSubDomains; preload'
+  );
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -148,6 +164,22 @@ export async function middleware(request: NextRequest) {
   response.headers.set(
     'Permissions-Policy',
     'camera=(), microphone=(self), geolocation=()'
+  );
+  response.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com",
+      "frame-ancestors 'none'",
+    ].join('; ')
+  );
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=63072000; includeSubDomains; preload'
   );
 
   return response;
