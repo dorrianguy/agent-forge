@@ -35,6 +35,34 @@ export const AGENT_TYPES = [
   'custom',
 ] as const;
 
+export type AgentType = typeof AGENT_TYPES[number];
+
+/**
+ * Per-agent action allowlists (LLM06 — Excessive Agency prevention).
+ *
+ * Each agent type declares exactly what actions it is permitted to take.
+ * An agent outside its allowlist must be blocked server-side, not just in the UI.
+ * Actions map to capabilities surfaced through integrations (CRM writes, calendar
+ * bookings, email sends, etc.).
+ */
+export const AGENT_ACTION_ALLOWLISTS: Record<AgentType, readonly string[]> = {
+  customer_support: ['read_knowledge_base', 'create_ticket', 'update_ticket', 'send_message'],
+  sales:            ['read_knowledge_base', 'read_crm', 'create_crm_lead', 'send_message'],
+  lead_qualifier:   ['read_knowledge_base', 'read_crm', 'update_crm_lead', 'send_message'],
+  booking:          ['read_calendar', 'create_booking', 'update_booking', 'send_message'],
+  faq:              ['read_knowledge_base', 'send_message'],
+  voice:            ['read_knowledge_base', 'send_message', 'initiate_call'],
+  email:            ['read_knowledge_base', 'send_email', 'read_inbox'],
+  custom:           ['read_knowledge_base', 'send_message'], // start minimal; expand explicitly
+} as const;
+
+/**
+ * Check whether a requested action is permitted for the given agent type.
+ */
+export function isActionAllowed(agentType: AgentType, action: string): boolean {
+  return (AGENT_ACTION_ALLOWLISTS[agentType] as readonly string[]).includes(action);
+}
+
 export const AGENT_STATUSES = ['ready', 'live', 'paused'] as const;
 
 export const CreateAgentSchema = z.object({

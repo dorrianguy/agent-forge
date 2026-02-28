@@ -5,6 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { escalatingCall, ESCALATION_PRESETS } from '@/lib/model-escalation';
 import { GeneratedAgentConfigSchema, zodToToolSchema, formatZodErrors } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
+import { detectInjection, scanAndRedactPii, detectLeakage, validateInputLengths } from '@/lib/llm-security';
+import { AGENT_ACTION_ALLOWLISTS, type AgentType } from '@/lib/schemas';
 
 // 3 requests per IP per hour
 const RATE_LIMIT_MAX = 3;
@@ -59,6 +61,23 @@ export async function POST(request: NextRequest) {
     if (!description?.trim()) {
       return NextResponse.json(
         { error: 'Agent description is required' },
+        { status: 400 },
+      );
+    }
+
+    // Input length validation — prevents token-flooding attacks
+    const lengthError = validateInputLengths({ name, description });
+    if (lengthError) {
+      return NextResponse.json({ error: lengthError }, { status: 400 });
+    }
+
+    // Prompt injection detection — block before anything reaches the LLM
+    const injectionInName = name ? detectInjection(name) : null;
+    const injectionInDescription = detectInjection(description);
+    if (injectionInName || injectionInDescription) {
+      logger.warn('Prompt injection attempt blocked in agent generate', { ip, injectionInName, injectionInDescription });
+      return NextResponse.json(
+        { error: 'Invalid input detected' },
         { status: 400 },
       );
     }
@@ -163,13 +182,40 @@ Generate a complete agent configuration by calling the generate_agent_config too
     }
 
     const config = agentConfig as Record<string, unknown>;
+
+    // Output safety: scan LLM-generated text fields for PII and leakage
+    const systemPromptText = (config.systemPrompt as string) ?? '';
+    const greetingText = (config.greeting as string) ?? '';
+
+    const leakageCheck = detectLeakage(systemPromptText) ?? detectLeakage(greetingText);
+    if (leakageCheck) {
+      logger.warn('System prompt leakage detected in agent generation output', { ip, leakageCheck });
+      return NextResponse.json(
+        { error: 'Generated configuration could not be validated. Please try again.' },
+        { status: 500 },
+      );
+    }
+
+    const systemPromptScan = scanAndRedactPii(systemPromptText);
+    const greetingScan = scanAndRedactPii(greetingText);
+    if (!systemPromptScan.clean) {
+      logger.warn('PII found in generated system prompt — redacted', { ip, findings: systemPromptScan.findings });
+      config.systemPrompt = systemPromptScan.redacted;
+    }
+    if (!greetingScan.clean) {
+      logger.warn('PII found in generated greeting — redacted', { ip, findings: greetingScan.findings });
+      config.greeting = greetingScan.redacted;
+    }
+
+    const agentType = ((config.type as string) || type || 'custom') as AgentType;
     const agent = {
       id: `agent-${Date.now()}`,
       name: (config.name as string) || name,
-      type: (config.type as string) || type || 'custom',
+      type: agentType,
       description,
       config,
       status: 'ready',
+      allowedActions: AGENT_ACTION_ALLOWLISTS[agentType] ?? AGENT_ACTION_ALLOWLISTS.custom,
       createdAt: new Date().toISOString(),
       _meta: {
         generatedBy: usedModel,
