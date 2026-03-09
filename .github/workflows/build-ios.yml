@@ -21,6 +21,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync web assets to iOS (remote server app)
+        run: |
+          mkdir -p out && echo '<html></html>' > out/index.html
+          npx cap sync ios
+
       - name: Import Distribution Certificate
         env:
           P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
@@ -85,8 +90,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath $PWD/build/AgentForge.xcarchive \
             -exportPath $PWD/build/ipa \
-            -exportOptionsPlist ExportOptions.plist \
-            | xcpretty
+            -exportOptionsPlist ExportOptions.plist
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
