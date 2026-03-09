@@ -23,8 +23,9 @@ jobs:
 
       - name: Add iOS platform and sync
         run: |
-          ./node_modules/.bin/cap add ios || true
-          ./node_modules/.bin/cap sync ios
+          npm install -g @capacitor/cli
+          cap add ios || true
+          cap sync ios
 
       - name: Import Distribution Certificate
         env:
