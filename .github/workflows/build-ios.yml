@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout
@@ -44,6 +44,7 @@ jobs:
           security unlock-keychain -p "build123" build.keychain
           security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "build123" build.keychain
+          security set-keychain-settings -lut 7200 build.keychain
           security find-identity -v -p codesigning build.keychain
 
       - name: Install Provisioning Profile
