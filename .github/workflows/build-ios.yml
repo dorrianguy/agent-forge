@@ -99,6 +99,22 @@ jobs:
             -exportPath $PWD/build/ipa \
             -exportOptionsPlist ExportOptions.plist
 
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY_P8" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          IPA_PATH=$(find $PWD/build/ipa -name "*.ipa" | head -1)
+          xcrun altool --upload-app \
+            -f "$IPA_PATH" \
+            -t ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            --verbose
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
