@@ -7,8 +7,6 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/build-android.yml'
-      - 'capacitor.config.ts'
-      - 'package.json'
 
 jobs:
   build-android:
@@ -16,15 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -39,9 +28,6 @@ jobs:
         run: |
           mkdir -p android/app/keystore
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore/agentforge.p12
-
-      - name: Sync Capacitor
-        run: npx cap sync android
 
       - name: Make Gradle executable
         run: chmod +x android/gradlew
