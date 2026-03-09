@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Agent Forge</string>
+    <string name="title_activity_main">Agent Forge</string>
+    <string name="package_name">com.agentforge.app</string>
+    <string name="custom_url_scheme">com.agentforge.app</string>
+</resources>
