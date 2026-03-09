@@ -21,9 +21,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install CocoaPods dependencies
-        run: cd ios/App && pod install --repo-update
-
       - name: Import Distribution Certificate
         env:
           P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
@@ -74,15 +71,14 @@ jobs:
       - name: Build Archive
         run: |
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath $PWD/build/AgentForge.xcarchive \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="AgentForge AppStore" \
-            DEVELOPMENT_TEAM=K9Z42X89GK \
-            | xcpretty
+            DEVELOPMENT_TEAM=K9Z42X89GK
 
       - name: Export IPA
         run: |
