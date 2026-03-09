@@ -1,0 +1,13 @@
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# @react-native-community/cli-platform-ios >= 4.3.0
+install! 'cocoapods', :deterministic_uuids => false
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
