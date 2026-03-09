@@ -21,12 +21,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Add iOS platform and sync
+      - name: Sync Capacitor iOS
         run: |
           mkdir -p out && echo '<html></html>' > out/index.html
-          npm install -g @capacitor/cli
-          cap add ios || true
-          cap sync ios
+          npx cap sync ios
 
       - name: Import Distribution Certificate
         env:
