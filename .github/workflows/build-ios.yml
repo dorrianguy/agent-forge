@@ -16,15 +16,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Add iOS platform and sync
         run: |
-          npx cap add ios || true
-          npx cap sync ios
+          ./node_modules/.bin/cap add ios || true
+          ./node_modules/.bin/cap sync ios
 
       - name: Import Distribution Certificate
         env:
