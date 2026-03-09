@@ -24,7 +24,7 @@ jobs:
       - name: Sync web assets to iOS (remote server app)
         run: |
           mkdir -p out && echo '<html></html>' > out/index.html
-          npx cap sync ios
+          ./node_modules/.bin/cap sync ios
 
       - name: Import Distribution Certificate
         env:
