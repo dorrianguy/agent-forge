@@ -23,6 +23,7 @@ jobs:
 
       - name: Add iOS platform and sync
         run: |
+          mkdir -p out && echo '<html></html>' > out/index.html
           npm install -g @capacitor/cli
           cap add ios || true
           cap sync ios
