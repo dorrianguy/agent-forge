@@ -261,6 +261,5 @@ export const PLAN_AGENT_LIMITS = {
   enterprise: -1,
 } as const;
 
-export type AgentType = (typeof AGENT_TYPES)[number];
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
 export type PlanType = (typeof VALID_PLANS)[number];
