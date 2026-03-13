@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '../src/styles/animations.css';
 import './globals.css';
+import NativeAppShell from '@/components/NativeAppShell';
 
 export const metadata: Metadata = {
   title: {
@@ -127,7 +128,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
         />
       </head>
-      <body className="bg-slate-950">{children}</body>
+      <body className="bg-slate-950">
+        <NativeAppShell>{children}</NativeAppShell>
+      </body>
     </html>
   );
 }

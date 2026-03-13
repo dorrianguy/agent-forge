@@ -6,6 +6,7 @@ import { Check, Flame, Zap, Crown, ArrowRight, Loader2, AlertCircle } from 'luci
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUser } from '@/lib/auth';
+import { shouldUseIAP } from '@/lib/iap';
 
 interface Plan {
   name: string;
@@ -27,6 +28,7 @@ function PricingContent({ plans }: PricingClientProps) {
 
   const isRequired = searchParams?.get('required') === 'true';
   const fromBuild = searchParams?.get('from') === 'build';
+  const isIOSNative = shouldUseIAP();
 
   React.useEffect(() => {
     getUser().then(user => setIsAuthenticated(!!user)).catch(() => setIsAuthenticated(false));
@@ -135,10 +137,12 @@ function PricingContent({ plans }: PricingClientProps) {
 
             <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
 
-            <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-4xl font-bold text-white">${plan.price}</span>
-              <span className="text-slate-400">/{plan.interval}</span>
-            </div>
+            {!isIOSNative && (
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="text-4xl font-bold text-white">${plan.price}</span>
+                <span className="text-slate-400">/{plan.interval}</span>
+              </div>
+            )}
 
             <ul className="space-y-3 mb-8">
               {plan.features.map((feature, i) => (
@@ -149,27 +153,33 @@ function PricingContent({ plans }: PricingClientProps) {
               ))}
             </ul>
 
-            <button
-              onClick={() => handleSelectPlan(key)}
-              disabled={checkoutLoading && selectedPlan === key}
-              className={`w-full py-3 px-6 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-                key === 'professional'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
-                  : 'bg-slate-800 text-white hover:bg-slate-700'
-              } ${checkoutLoading && selectedPlan === key ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {checkoutLoading && selectedPlan === key ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  Get Started
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            {isIOSNative ? (
+              <p className="text-sm text-slate-400 text-center">
+                Manage your subscription in Settings &gt; your name &gt; Subscriptions
+              </p>
+            ) : (
+              <button
+                onClick={() => handleSelectPlan(key)}
+                disabled={checkoutLoading && selectedPlan === key}
+                className={`w-full py-3 px-6 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                  key === 'professional'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
+                    : 'bg-slate-800 text-white hover:bg-slate-700'
+                } ${checkoutLoading && selectedPlan === key ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {checkoutLoading && selectedPlan === key ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Get Started
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
           </motion.div>
         ))}
       </div>
