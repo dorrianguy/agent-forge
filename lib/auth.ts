@@ -40,7 +40,7 @@ export async function signIn(email: string, password: string) {
   return data;
 }
 
-export async function signInWithOAuth(provider: 'google' | 'github') {
+export async function signInWithOAuth(provider: 'google' | 'github' | 'apple') {
   const { data, error } = await getSupabase().auth.signInWithOAuth({
     provider,
     options: {

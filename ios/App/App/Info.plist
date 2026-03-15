@@ -47,5 +47,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Agent Forge uses Face ID to secure your account and protect your AI agents.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Agent Forge uses the camera to scan QR codes for quick agent setup.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

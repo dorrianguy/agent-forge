@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '../src/styles/animations.css';
 import './globals.css';
 import NativeAppShell from '@/components/NativeAppShell';
+import NativeInit from '@/components/native-init';
 
 export const metadata: Metadata = {
   title: {
@@ -129,6 +130,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-950">
+        <NativeInit />
         <NativeAppShell>{children}</NativeAppShell>
       </body>
     </html>

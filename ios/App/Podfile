@@ -9,5 +9,6 @@ install! 'cocoapods', :deterministic_uuids => false
 
 target 'App' do
   capacitor_pods
-  # Add your Pods here
+  # In-App Purchase support
+  pod 'SwiftyStoreKit', '~> 0.16'
 end

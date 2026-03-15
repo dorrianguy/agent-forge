@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUser } from '@/lib/auth';
 import { shouldUseIAP } from '@/lib/iap';
+import IOSPaywall from '@/components/ios-paywall';
 
 interface Plan {
   name: string;
@@ -25,6 +26,7 @@ function PricingContent({ plans }: PricingClientProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showIOSPaywall, setShowIOSPaywall] = useState(false);
 
   const isRequired = searchParams?.get('required') === 'true';
   const fromBuild = searchParams?.get('from') === 'build';
@@ -154,9 +156,17 @@ function PricingContent({ plans }: PricingClientProps) {
             </ul>
 
             {isIOSNative ? (
-              <p className="text-sm text-slate-400 text-center">
-                Manage your subscription in Settings &gt; your name &gt; Subscriptions
-              </p>
+              <button
+                onClick={() => setShowIOSPaywall(true)}
+                className={`w-full py-3 px-6 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                  key === 'professional'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
+                    : 'bg-slate-800 text-white hover:bg-slate-700'
+                }`}
+              >
+                Subscribe
+                <ArrowRight className="w-4 h-4" />
+              </button>
             ) : (
               <button
                 onClick={() => handleSelectPlan(key)}
@@ -183,6 +193,10 @@ function PricingContent({ plans }: PricingClientProps) {
           </motion.div>
         ))}
       </div>
+
+      {isIOSNative && showIOSPaywall && (
+        <IOSPaywall onClose={() => setShowIOSPaywall(false)} />
+      )}
     </>
   );
 }
