@@ -21,17 +21,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create Capacitor iOS config files (remote server app)
-        run: |
-          mkdir -p ios/App/App/public
-          touch ios/App/App/public/cordova.js ios/App/App/public/cordova_plugins.js
-          cp capacitor.config.json ios/App/App/capacitor.config.json
-          cat > ios/App/App/config.xml << 'EOF'
-          <?xml version='1.0' encoding='utf-8'?>
-          <widget version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-            <access origin="*" />
-          </widget>
-          EOF
+      - name: Sync Capacitor iOS (generates Cordova plugins and fixes paths)
+        run: npx cap sync ios
 
       - name: Import Distribution Certificate
         env:
