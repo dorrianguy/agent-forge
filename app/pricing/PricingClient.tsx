@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUser } from '@/lib/auth';
 import { shouldUseIAP } from '@/lib/iap';
+import { isIOS } from '@/lib/platform';
 import IOSPaywall from '@/components/ios-paywall';
 
 interface Plan {
@@ -115,7 +116,7 @@ function PricingContent({ plans }: PricingClientProps) {
 
       {/* Pricing Cards */}
       <div className="grid md:grid-cols-3 gap-8 mb-16">
-        {Object.entries(plans).map(([key, plan], index) => (
+        {Object.entries(plans).filter(([key]) => !(isIOS() && key === 'enterprise')).map(([key, plan], index) => (
           <motion.div
             key={key}
             initial={{ opacity: 0, y: 20 }}
