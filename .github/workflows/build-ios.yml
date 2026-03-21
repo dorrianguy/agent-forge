@@ -21,13 +21,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app (static export for Capacitor)
+      - name: Prepare static export (move server-only files aside)
         run: |
-          mv app/api app/_api_server 2>/dev/null || true
-          mv pages/api pages/_api_server 2>/dev/null || true
-          npm run build
-          mv app/_api_server app/api 2>/dev/null || true
-          mv pages/_api_server pages/api 2>/dev/null || true
+          mv app/api app/_api_disabled || true
+          mv pages/api _pages_api_disabled || true
+          mv "app/dashboard/agents/[id]" app/dashboard/agents/_dynamic_disabled || true
+          mv app/auth app/_auth_disabled || true
+          mv app/icon.tsx app/_icon.tsx.disabled || true
+          mv app/apple-icon.tsx app/_apple-icon.tsx.disabled || true
+          mv app/sitemap.ts app/_sitemap.ts.disabled || true
+          mv middleware.ts _middleware.ts.disabled || true
+          mv src/middleware.ts src/_middleware.ts.disabled || true
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Restore server-only files
+        if: always()
+        run: |
+          mv app/_api_disabled app/api || true
+          mv _pages_api_disabled pages/api || true
+          mv app/dashboard/agents/_dynamic_disabled "app/dashboard/agents/[id]" || true
+          mv app/_auth_disabled app/auth || true
+          mv app/_icon.tsx.disabled app/icon.tsx || true
+          mv app/_apple-icon.tsx.disabled app/apple-icon.tsx || true
+          mv app/_sitemap.ts.disabled app/sitemap.ts || true
+          mv _middleware.ts.disabled middleware.ts || true
+          mv src/_middleware.ts.disabled src/middleware.ts || true
 
       - name: Sync Capacitor iOS
         run: npx cap sync ios
