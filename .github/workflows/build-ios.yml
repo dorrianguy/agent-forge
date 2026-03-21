@@ -21,7 +21,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Sync Capacitor iOS (generates Cordova plugins and fixes paths)
+      - name: Build web app (static export for Capacitor)
+        run: |
+          mv app/api app/_api_server 2>/dev/null || true
+          mv pages/api pages/_api_server 2>/dev/null || true
+          npm run build
+          mv app/_api_server app/api 2>/dev/null || true
+          mv pages/_api_server pages/api 2>/dev/null || true
+
+      - name: Sync Capacitor iOS
         run: npx cap sync ios
 
       - name: Import Distribution Certificate

@@ -4,6 +4,10 @@ import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { checkRateLimitAsync, getRateLimitHeaders } from '@/lib/rateLimit';
 
+export function generateStaticParams() {
+  return [];
+}
+
 /**
  * /api/agents/[id] — Single agent operations
  *

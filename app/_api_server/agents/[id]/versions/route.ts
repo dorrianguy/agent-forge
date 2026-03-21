@@ -11,6 +11,10 @@ import {
   DEFAULT_AGENT_CONFIG,
 } from '@/lib/version-types';
 
+export function generateStaticParams() {
+  return [];
+}
+
 // Helper to generate unique IDs
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
