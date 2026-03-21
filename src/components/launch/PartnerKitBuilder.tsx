@@ -209,7 +209,7 @@ export default function PartnerKitBuilder({ data, onFieldSave }: PartnerKitBuild
               />
               {partnerLogoUrl && (
                 <div className="flex-shrink-0 w-8 h-8 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                  <Image className="w-4 h-4 text-zinc-500" />
+                  <Image className="w-4 h-4 text-zinc-500" alt="" />
                 </div>
               )}
             </div>

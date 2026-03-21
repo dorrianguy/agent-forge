@@ -614,7 +614,7 @@ export default function VoiceAgentBuilder({ isOpen, onClose, onComplete }) {
                           </div>
                           <div>
                             <p className="text-white font-medium text-sm">Auto-detect Language</p>
-                            <p className="text-white/40 text-xs">Detect caller's language automatically</p>
+                            <p className="text-white/40 text-xs">Detect caller&apos;s language automatically</p>
                           </div>
                         </div>
                         <motion.button
@@ -671,7 +671,7 @@ export default function VoiceAgentBuilder({ isOpen, onClose, onComplete }) {
                         </div>
                         <div>
                           <p className="text-white font-medium text-sm">Back-channeling</p>
-                          <p className="text-white/40 text-xs">Insert acknowledgments like "uh-huh", "I see" during caller speech</p>
+                          <p className="text-white/40 text-xs">Insert acknowledgments like &quot;uh-huh&quot;, &quot;I see&quot; during caller speech</p>
                         </div>
                       </div>
                       <motion.button
@@ -848,7 +848,7 @@ export default function VoiceAgentBuilder({ isOpen, onClose, onComplete }) {
                                 ) : (
                                   <>
                                     <AlertCircle className="w-4 h-4" />
-                                    API key should start with "sk_"
+                                    API key should start with &quot;sk_&quot;
                                   </>
                                 )}
                               </motion.div>
@@ -886,7 +886,7 @@ export default function VoiceAgentBuilder({ isOpen, onClose, onComplete }) {
                   {/* System Prompt */}
                   <div>
                     <label className="text-white font-medium mb-2 block">System Prompt</label>
-                    <p className="text-white/40 text-sm mb-3">Define the agent's role, knowledge, and behavior</p>
+                    <p className="text-white/40 text-sm mb-3">Define the agent&apos;s role, knowledge, and behavior</p>
                     <textarea
                       value={formData.systemPrompt}
                       onChange={(e) => updateFormData({ systemPrompt: e.target.value })}
