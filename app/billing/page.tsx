@@ -18,6 +18,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getUser, getProfile } from '@/lib/auth';
 import type { Profile } from '@/lib/supabase';
+import { isIOS } from '@/lib/platform';
+import { shouldUseIAP } from '@/lib/iap';
 
 interface SubscriptionData {
   id: string;
@@ -54,8 +56,18 @@ export default function BillingPage() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [portalLoading, setPortalLoading] = useState(false);
 
+  // On iOS, billing is managed through App Store subscriptions
   useEffect(() => {
-    fetchBillingData();
+    if (shouldUseIAP()) {
+      router.replace('/pricing');
+      return;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!shouldUseIAP()) {
+      fetchBillingData();
+    }
   }, []);
 
   const fetchBillingData = async () => {

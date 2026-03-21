@@ -23,11 +23,18 @@ export async function signUp(email: string, password: string, name?: string) {
       data: {
         name: name || email.split('@')[0],
       },
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   });
 
   if (error) throw error;
-  return data;
+
+  // If email confirmation is required, user will be non-null but session will be null
+  if (data.user && !data.session) {
+    return { ...data, confirmationRequired: true };
+  }
+
+  return { ...data, confirmationRequired: false };
 }
 
 export async function signIn(email: string, password: string) {

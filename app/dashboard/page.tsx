@@ -16,6 +16,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import StatCard from '@/components/dashboard/StatCard';
 import AgentCard from '@/components/dashboard/AgentCard';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
+import { shouldUseIAP } from '@/lib/iap';
 
 // Animation variants
 const staggerContainer = {
@@ -228,10 +229,12 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <div className="p-2">
-                          <Link href="/billing" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition">
-                            <CreditCard className="w-4 h-4 text-white/50" />
-                            <span className="text-white/70">Billing</span>
-                          </Link>
+                          {!shouldUseIAP() && (
+                            <Link href="/billing" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition">
+                              <CreditCard className="w-4 h-4 text-white/50" />
+                              <span className="text-white/70">Billing</span>
+                            </Link>
+                          )}
                           <Link href="/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition">
                             <Settings className="w-4 h-4 text-white/50" />
                             <span className="text-white/70">Settings</span>

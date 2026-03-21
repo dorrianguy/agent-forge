@@ -16,6 +16,7 @@ function LoginForm() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const redirect = searchParams?.get('redirect') || '/dashboard';
   const action = searchParams?.get('action');
@@ -28,10 +29,15 @@ function LoginForm() {
     try {
       if (isLogin) {
         await signIn(email, password);
+        router.push(redirect);
       } else {
-        await signUp(email, password, name);
+        const result = await signUp(email, password, name);
+        if (result.confirmationRequired) {
+          setConfirmationSent(true);
+        } else {
+          router.push(redirect);
+        }
       }
-      router.push(redirect);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
       setError(message);
@@ -146,6 +152,27 @@ function LoginForm() {
             </p>
           </div>
 
+          {/* Email Confirmation Message */}
+          {confirmationSent && (
+            <motion.div
+              className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h3 className="text-green-400 font-semibold mb-1">Check your email</h3>
+              <p className="text-green-300/80 text-sm">
+                We sent a confirmation link to <strong>{email}</strong>. Click the link to activate your account, then come back and sign in.
+              </p>
+              <button
+                onClick={() => { setConfirmationSent(false); setIsLogin(true); }}
+                className="mt-3 text-sm text-green-400 hover:text-green-300 underline transition"
+              >
+                Back to sign in
+              </button>
+            </motion.div>
+          )}
+
+          {confirmationSent ? null : <>
           {/* OAuth Buttons */}
           <div className="space-y-3 mb-6">
             <motion.button
@@ -283,6 +310,7 @@ function LoginForm() {
             {' '}and{' '}
             <Link href="/privacy" className="text-white/60 hover:text-white transition">Privacy Policy</Link>
           </p>
+          </>}
         </motion.div>
       </div>
     </div>
