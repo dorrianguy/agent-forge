@@ -21,37 +21,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create offline fallback page
+      - name: Create minimal webview fallback
         run: |
           mkdir -p out
-          cat > out/index.html << 'OFFLINE'
+          cat > out/index.html << 'FALLBACK'
           <!DOCTYPE html>
           <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Agent Forge</title>
-            <style>
-              body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0a0a0a; color: white; text-align: center; }
-              .container { padding: 2rem; }
-              h1 { font-size: 1.5rem; margin-bottom: 1rem; }
-              p { color: #888; margin-bottom: 1.5rem; }
-              button { background: #f97316; color: white; border: none; padding: 0.75rem 2rem; border-radius: 0.5rem; font-size: 1rem; cursor: pointer; }
-            </style>
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Agent Forge</title>
+          <style>body{font-family:-apple-system,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:white;text-align:center}p{color:#888}</style>
           </head>
-          <body>
-            <div class="container">
-              <h1>Agent Forge</h1>
-              <p>Please check your internet connection and try again.</p>
-              <button onclick="window.location.reload()">Retry</button>
-            </div>
-            <script>
-              // Auto-retry every 5 seconds
-              setTimeout(() => window.location.href = 'https://agent-forge.app', 3000);
-            </script>
-          </body>
+          <body><p>Loading native experience...</p></body>
           </html>
-          OFFLINE
+          FALLBACK
 
       - name: Sync Capacitor iOS
         run: npx cap sync ios

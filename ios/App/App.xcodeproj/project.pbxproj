@@ -14,6 +14,12 @@
 		6760BB0001000000000000001 /* NativeChatPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0001000000000000001 /* NativeChatPlugin.swift */; };
 		6760BB0002000000000000001 /* NativeChatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0002000000000000001 /* NativeChatViewController.swift */; };
 		6760BB0003000000000000001 /* SiriShortcutsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0003000000000000001 /* SiriShortcutsPlugin.swift */; };
+		6760BB0004000000000000001 /* NativeAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0004000000000000001 /* NativeAPIClient.swift */; };
+		6760BB0005000000000000001 /* NativeLoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0005000000000000001 /* NativeLoginViewController.swift */; };
+		6760BB0006000000000000001 /* AgentListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0006000000000000001 /* AgentListViewController.swift */; };
+		6760BB0007000000000000001 /* NativeSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0007000000000000001 /* NativeSettingsViewController.swift */; };
+		6760BB0008000000000000001 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0008000000000000001 /* WebViewController.swift */; };
+		6760BB0009000000000000001 /* MainTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760AA0009000000000000001 /* MainTabBarController.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -33,6 +39,12 @@
 		6760AA0001000000000000001 /* NativeChatPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeChatPlugin.swift; sourceTree = "<group>"; };
 		6760AA0002000000000000001 /* NativeChatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeChatViewController.swift; sourceTree = "<group>"; };
 		6760AA0003000000000000001 /* SiriShortcutsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriShortcutsPlugin.swift; sourceTree = "<group>"; };
+		6760AA0004000000000000001 /* NativeAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAPIClient.swift; sourceTree = "<group>"; };
+		6760AA0005000000000000001 /* NativeLoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeLoginViewController.swift; sourceTree = "<group>"; };
+		6760AA0006000000000000001 /* AgentListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentListViewController.swift; sourceTree = "<group>"; };
+		6760AA0007000000000000001 /* NativeSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSettingsViewController.swift; sourceTree = "<group>"; };
+		6760AA0008000000000000001 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		6760AA0009000000000000001 /* MainTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabBarController.swift; sourceTree = "<group>"; };
 		A1B2C3D42DB1000000000001 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -71,8 +83,14 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
-				6760AA0001000000000000001 /* NativeChatPlugin.swift */,
+				6760AA0004000000000000001 /* NativeAPIClient.swift */,
+				6760AA0005000000000000001 /* NativeLoginViewController.swift */,
+				6760AA0006000000000000001 /* AgentListViewController.swift */,
+				6760AA0009000000000000001 /* MainTabBarController.swift */,
 				6760AA0002000000000000001 /* NativeChatViewController.swift */,
+				6760AA0008000000000000001 /* WebViewController.swift */,
+				6760AA0007000000000000001 /* NativeSettingsViewController.swift */,
+				6760AA0001000000000000001 /* NativeChatPlugin.swift */,
 				6760AA0003000000000000001 /* SiriShortcutsPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -170,6 +188,12 @@
 				6760BB0001000000000000001 /* NativeChatPlugin.swift in Sources */,
 				6760BB0002000000000000001 /* NativeChatViewController.swift in Sources */,
 				6760BB0003000000000000001 /* SiriShortcutsPlugin.swift in Sources */,
+				6760BB0004000000000000001 /* NativeAPIClient.swift in Sources */,
+				6760BB0005000000000000001 /* NativeLoginViewController.swift in Sources */,
+				6760BB0006000000000000001 /* AgentListViewController.swift in Sources */,
+				6760BB0007000000000000001 /* NativeSettingsViewController.swift in Sources */,
+				6760BB0008000000000000001 /* WebViewController.swift in Sources */,
+				6760BB0009000000000000001 /* MainTabBarController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,7 +335,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -334,7 +358,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

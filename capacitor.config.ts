@@ -6,9 +6,7 @@ const config: CapacitorConfig = {
   appName: 'Agent Forge',
   webDir: 'out',
   server: {
-    url: 'https://agent-forge.app',
     cleartext: false,
-    errorPath: '/offline.html',
   },
   ios: {
     contentInset: 'automatic',
