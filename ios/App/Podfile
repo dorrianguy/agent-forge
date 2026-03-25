@@ -1,6 +1,6 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '14.0'
+platform :ios, '15.0'
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires
@@ -9,6 +9,5 @@ install! 'cocoapods', :deterministic_uuids => false
 
 target 'App' do
   capacitor_pods
-  # In-App Purchase support
-  pod 'SwiftyStoreKit', '~> 0.16'
+
 end
