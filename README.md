@@ -40,7 +40,7 @@ Agent Forge is a fully autonomous AI agent builder platform. Describe what you w
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/agent-forge.git
+git clone https://github.com/dorrianguy/agent-forge.git
 cd agent-forge
 
 # Set up environment
@@ -58,7 +58,7 @@ open http://localhost:8000
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/agent-forge.git
+git clone https://github.com/dorrianguy/agent-forge.git
 cd agent-forge
 
 # Set up Python environment
@@ -258,11 +258,23 @@ The dashboard provides:
 
 ---
 
+## 🌐 Links
+
+- **Website**: [agent-forge.app](https://agent-forge.app)
+- **Features**: [agent-forge.app/features](https://agent-forge.app/features)
+- **Pricing**: [agent-forge.app/pricing](https://agent-forge.app/pricing)
+- **Documentation**: [agent-forge.app/docs](https://agent-forge.app/docs)
+- **Blog**: [agent-forge.app/blog](https://agent-forge.app/blog)
+- **FAQ**: [agent-forge.app/faq](https://agent-forge.app/faq)
+- **Comparisons**: [agent-forge.app/compare](https://agent-forge.app/compare)
+- **Email**: support@agent-forge.app
+
+---
+
 ## 🤝 Support
 
-- Documentation: [docs.agentforge.ai](https://docs.agentforge.ai)
-- Email: support@agentforge.ai
-- Discord: [discord.gg/agentforge](https://discord.gg/agentforge)
+- Documentation: [agent-forge.app/docs](https://agent-forge.app/docs)
+- Email: support@agent-forge.app
 
 ---
 
@@ -276,10 +288,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 Built with:
 - [Anthropic Claude](https://anthropic.com) - AI backbone
-- [FastAPI](https://fastapi.tiangolo.com) - API framework
+- [Next.js](https://nextjs.org) - Full-stack React framework
 - [React](https://react.dev) - Frontend
 - [Tailwind CSS](https://tailwindcss.com) - Styling
+- [Supabase](https://supabase.com) - Auth & Database
 
 ---
 
-**Made with 🔥 by Agent Forge**
+**[Start building your AI agent for free →](https://agent-forge.app/build)**
