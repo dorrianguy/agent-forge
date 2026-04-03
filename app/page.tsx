@@ -80,8 +80,14 @@ export default function LandingPage() {
             </motion.div>
 
             <div className="flex items-center gap-4">
+              <Link href="/features" className="text-white/70 hover:text-white transition hidden md:block">
+                Features
+              </Link>
               <Link href="/pricing" className="text-white/70 hover:text-white transition hidden md:block">
                 Pricing
+              </Link>
+              <Link href="/blog" className="text-white/70 hover:text-white transition hidden md:block">
+                Blog
               </Link>
               <Link href="/login" className="text-white/70 hover:text-white transition hidden md:block">
                 Sign In
@@ -369,6 +375,24 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Explore More */}
+      <section className="relative z-10 py-16 px-6">
+        <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-6 text-center">
+          <Link href="/compare" className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-orange-500/30 transition group">
+            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400 transition">See How We Compare</h3>
+            <p className="text-white/50 text-sm">Side-by-side comparisons with Voiceflow, Botpress, Vapi, and 8 more platforms.</p>
+          </Link>
+          <Link href="/faq" className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-orange-500/30 transition group">
+            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400 transition">Frequently Asked Questions</h3>
+            <p className="text-white/50 text-sm">Pricing, features, voice agents, integrations — all answered.</p>
+          </Link>
+          <Link href="/blog" className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-orange-500/30 transition group">
+            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400 transition">Read the Blog</h3>
+            <p className="text-white/50 text-sm">Guides, tutorials, and insights on building AI agents that work.</p>
+          </Link>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="relative z-10 py-24 px-6">
         <div className="max-w-4xl mx-auto">
@@ -412,9 +436,14 @@ export default function LandingPage() {
             </div>
             <span className="text-white font-semibold">Agent Forge</span>
           </div>
-          <div className="flex items-center gap-6 text-white/60 text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-white/60 text-sm">
+            <Link href="/features" className="hover:text-white transition">Features</Link>
             <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
-            <Link href="/docs" className="hover:text-white transition">Documentation</Link>
+            <Link href="/compare" className="hover:text-white transition">Comparisons</Link>
+            <Link href="/blog" className="hover:text-white transition">Blog</Link>
+            <Link href="/faq" className="hover:text-white transition">FAQ</Link>
+            <Link href="/docs" className="hover:text-white transition">Docs</Link>
+            <Link href="/about" className="hover:text-white transition">About</Link>
             <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition">Terms</Link>
           </div>

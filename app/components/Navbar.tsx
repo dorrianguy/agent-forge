@@ -38,8 +38,14 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <Link href="/features" className="text-white/70 hover:text-white transition hidden md:block">
+              Features
+            </Link>
             <Link href="/pricing" className="text-white/70 hover:text-white transition hidden md:block">
               Pricing
+            </Link>
+            <Link href="/blog" className="text-white/70 hover:text-white transition hidden md:block">
+              Blog
             </Link>
             <Link href="/login" className="text-white/70 hover:text-white transition hidden md:block">
               Sign In

@@ -16,9 +16,14 @@ export default function Footer() {
             <span className="text-white font-semibold">Agent Forge</span>
           </div>
         </Link>
-        <div className="flex items-center gap-6 text-white/60 text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-white/60 text-sm">
+          <Link href="/features" className="hover:text-white transition">Features</Link>
           <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
-          <Link href="/docs" className="hover:text-white transition">Documentation</Link>
+          <Link href="/compare" className="hover:text-white transition">Comparisons</Link>
+          <Link href="/blog" className="hover:text-white transition">Blog</Link>
+          <Link href="/faq" className="hover:text-white transition">FAQ</Link>
+          <Link href="/docs" className="hover:text-white transition">Docs</Link>
+          <Link href="/about" className="hover:text-white transition">About</Link>
           <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
           <Link href="/terms" className="hover:text-white transition">Terms</Link>
         </div>
