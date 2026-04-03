@@ -38,3 +38,6 @@ Disallow: /billing/
 
 # Sitemap location
 Sitemap: https://agent-forge.app/sitemap.xml
+
+# IndexNow key for Bing/Yandex instant indexing
+# Key file: https://agent-forge.app/53c88f761fdc66854d3cf60fd0b5c6b8.txt
