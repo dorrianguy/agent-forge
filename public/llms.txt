@@ -107,6 +107,32 @@ All plans include a 14-day free trial with no credit card required.
 - API: RESTful API with webhook support
 - Embed: Single-line JavaScript snippet for website integration
 
+## Pages
+- Homepage: https://agent-forge.app
+- Features: https://agent-forge.app/features
+- Pricing: https://agent-forge.app/pricing
+- Documentation: https://agent-forge.app/docs
+- FAQ: https://agent-forge.app/faq
+- Blog: https://agent-forge.app/blog
+- About: https://agent-forge.app/about
+- Comparisons Hub: https://agent-forge.app/compare
+- Agent Forge vs Voiceflow: https://agent-forge.app/compare/agent-forge-vs-voiceflow
+- Agent Forge vs Botpress: https://agent-forge.app/compare/agent-forge-vs-botpress
+- Agent Forge vs Vapi: https://agent-forge.app/compare/agent-forge-vs-vapi
+- Agent Forge vs Bland AI: https://agent-forge.app/compare/agent-forge-vs-bland-ai
+- Agent Forge vs Chatfuel: https://agent-forge.app/compare/agent-forge-vs-chatfuel
+- Agent Forge vs CrewAI: https://agent-forge.app/compare/agent-forge-vs-crewai
+- Agent Forge vs Dify: https://agent-forge.app/compare/agent-forge-vs-dify
+- Agent Forge vs Lindy: https://agent-forge.app/compare/agent-forge-vs-lindy
+- Agent Forge vs Relevance AI: https://agent-forge.app/compare/agent-forge-vs-relevance-ai
+- Agent Forge vs Stack AI: https://agent-forge.app/compare/agent-forge-vs-stack-ai
+- Agent Forge vs Tidio: https://agent-forge.app/compare/agent-forge-vs-tidio
+- Blog — No-Code AI Agent Builder Guide: https://agent-forge.app/blog/what-is-no-code-ai-agent-builder
+- Blog — Build AI Customer Support Agent: https://agent-forge.app/blog/build-ai-customer-support-agent
+- Blog — AI Agent Builder Comparison 2026: https://agent-forge.app/blog/ai-agent-builder-comparison-2026
+- Blog — AI Agents for Small Business: https://agent-forge.app/blog/ai-agents-small-business
+- Blog — AI Voice Agents Guide: https://agent-forge.app/blog/ai-voice-agents-guide
+
 ## Contact
 - Website: https://agent-forge.app
 - Pricing: https://agent-forge.app/pricing
