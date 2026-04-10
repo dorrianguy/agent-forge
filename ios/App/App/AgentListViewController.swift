@@ -115,12 +115,58 @@ class AgentListViewController: UIViewController, UITableViewDataSource, UITableV
   }
 
   @objc private func buildAgentTapped() {
-    let webVC = WebViewController()
-    webVC.urlString = "https://agent-forge.app/dashboard/agents/new"
-    webVC.pageTitle = "Build Agent"
-    let nav = UINavigationController(rootViewController: webVC)
-    nav.modalPresentationStyle = .fullScreen
-    present(nav, animated: true)
+    let alert = UIAlertController(title: "Create Agent", message: "Give your new agent a name and description.", preferredStyle: .alert)
+    alert.addTextField { field in
+      field.placeholder = "Agent name"
+      field.autocapitalizationType = .words
+    }
+    alert.addTextField { field in
+      field.placeholder = "Description (optional)"
+    }
+
+    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+    alert.addAction(UIAlertAction(title: "Create", style: .default) { [weak self] _ in
+      guard let name = alert.textFields?[0].text?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+        let errorAlert = UIAlertController(title: "Error", message: "Agent name is required.", preferredStyle: .alert)
+        errorAlert.addAction(UIAlertAction(title: "OK", style: .default))
+        self?.present(errorAlert, animated: true)
+        return
+      }
+      let description = alert.textFields?[1].text?.trimmingCharacters(in: .whitespacesAndNewlines)
+      self?.createAgent(name: name, description: description)
+    })
+
+    present(alert, animated: true)
+  }
+
+  private func createAgent(name: String, description: String?) {
+    NativeAPIClient.shared.createAgent(name: name, type: "assistant", description: description) { [weak self] result in
+      switch result {
+      case .success:
+        self?.loadAgents()
+      case .failure(let error):
+        let message: String
+        switch error {
+        case .serverError(403, let body):
+          if body.contains("Upgrade") || body.contains("plan") || body.contains("limit") {
+            message = "You've reached your plan's agent limit. Upgrade your plan to create more agents."
+          } else {
+            message = "You don't have permission to create agents. Please upgrade your plan."
+          }
+        case .unauthorized:
+          message = "Your session has expired. Please sign in again."
+          self?.handleUnauthorized()
+          return
+        case .networkError:
+          message = "Network error. Please check your connection and try again."
+        default:
+          message = "Failed to create agent. Please try again."
+        }
+        let alert = UIAlertController(title: "Cannot Create Agent", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        self?.present(alert, animated: true)
+      }
+    }
   }
 
   private func handleUnauthorized() {

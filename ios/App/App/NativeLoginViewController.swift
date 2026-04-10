@@ -307,6 +307,18 @@ extension NativeLoginViewController: ASAuthorizationControllerDelegate {
 
 extension NativeLoginViewController: ASAuthorizationControllerPresentationContextProviding {
   func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-    return view.window ?? UIWindow()
+    if let window = view.window {
+      return window
+    }
+    // iPad requires a valid window anchor — fall back to the app's key window
+    if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+       let keyWindow = scene.windows.first(where: { $0.isKeyWindow }) {
+      return keyWindow
+    }
+    // Last resort: use the AppDelegate window (pre-scene apps)
+    if let appWindow = (UIApplication.shared.delegate as? AppDelegate)?.window {
+      return appWindow
+    }
+    return UIWindow()
   }
 }

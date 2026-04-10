@@ -292,6 +292,101 @@ final class NativeAPIClient {
     }
   }
 
+  func createAgent(name: String, type: String, description: String?, completion: @escaping (Result<Agent, APIError>) -> Void) {
+    guard let token = accessToken else {
+      completion(.failure(.unauthorized))
+      return
+    }
+
+    guard let userID = currentUserID else {
+      completion(.failure(.unauthorized))
+      return
+    }
+
+    guard let url = URL(string: "\(supabaseURL)/rest/v1/agents") else {
+      completion(.failure(.invalidURL))
+      return
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+
+    var body: [String: Any] = [
+      "user_id": userID,
+      "name": name,
+      "type": type,
+      "status": "ready",
+      "conversations": 0,
+      "satisfaction": 0,
+    ]
+    if let desc = description, !desc.isEmpty {
+      body["description"] = desc
+    }
+    request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+    performRequest(request) { (result: Result<[Agent], APIError>) in
+      switch result {
+      case .success(let agents):
+        if let first = agents.first {
+          completion(.success(first))
+        } else {
+          completion(.failure(.noData))
+        }
+      case .failure(let error):
+        completion(.failure(error))
+      }
+    }
+  }
+
+  func deleteAccount(completion: @escaping (Result<Void, APIError>) -> Void) {
+    guard let token = accessToken else {
+      completion(.failure(.unauthorized))
+      return
+    }
+
+    guard let url = URL(string: "https://agent-forge.app/api/account/delete") else {
+      completion(.failure(.invalidURL))
+      return
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "DELETE"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+    URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+      if let error = error {
+        DispatchQueue.main.async { completion(.failure(.networkError(error))) }
+        return
+      }
+
+      guard let httpResponse = response as? HTTPURLResponse else {
+        DispatchQueue.main.async { completion(.failure(.noData)) }
+        return
+      }
+
+      if httpResponse.statusCode == 401 {
+        DispatchQueue.main.async { completion(.failure(.unauthorized)) }
+        return
+      }
+
+      guard (200...299).contains(httpResponse.statusCode) else {
+        let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown error"
+        DispatchQueue.main.async { completion(.failure(.serverError(httpResponse.statusCode, body))) }
+        return
+      }
+
+      DispatchQueue.main.async {
+        self?.signOut()
+        completion(.success(()))
+      }
+    }.resume()
+  }
+
   func getAgent(id: String, completion: @escaping (Result<Agent, APIError>) -> Void) {
     guard let token = accessToken else {
       completion(.failure(.unauthorized))

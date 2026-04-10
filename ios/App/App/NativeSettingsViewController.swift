@@ -17,6 +17,7 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
     case security
     case subscription
     case about
+    case dangerZone
     case signOut
   }
 
@@ -64,6 +65,7 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
     case .security: return 2
     case .subscription: return 2
     case .about: return 1
+    case .dangerZone: return 1
     case .signOut: return 1
     }
   }
@@ -74,6 +76,7 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
     case .security: return "Security"
     case .subscription: return "Subscription"
     case .about: return "About"
+    case .dangerZone: return "Danger Zone"
     case .signOut: return nil
     }
   }
@@ -163,6 +166,14 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
       cell.selectionStyle = .none
       return cell
 
+    case .dangerZone:
+      let cell = makeCell()
+      cell.textLabel?.text = "Delete Account"
+      cell.textLabel?.textColor = UIColor(red: 1, green: 0.3, blue: 0.3, alpha: 1)
+      cell.imageView?.image = UIImage(systemName: "trash")
+      cell.imageView?.tintColor = UIColor(red: 1, green: 0.3, blue: 0.3, alpha: 1)
+      return cell
+
     case .signOut:
       let cell = makeCell()
       cell.textLabel?.text = "Sign Out"
@@ -185,6 +196,8 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
       if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
         UIApplication.shared.open(url)
       }
+    case .dangerZone:
+      confirmDeleteAccount()
     case .signOut:
       confirmSignOut()
     default:
@@ -243,6 +256,55 @@ class NativeSettingsViewController: UIViewController, UITableViewDataSource, UIT
             }
           }
         }
+      }
+    }
+  }
+
+  private func confirmDeleteAccount() {
+    let alert = UIAlertController(
+      title: "Delete Account",
+      message: "Are you sure? This will permanently delete your account and all data. This action cannot be undone.",
+      preferredStyle: .alert
+    )
+    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+    alert.addAction(UIAlertAction(title: "Delete Account", style: .destructive) { [weak self] _ in
+      self?.performAccountDeletion()
+    })
+    present(alert, animated: true)
+  }
+
+  private func performAccountDeletion() {
+    let spinner = UIActivityIndicatorView(style: .medium)
+    spinner.color = .white
+    spinner.startAnimating()
+    navigationItem.rightBarButtonItem = UIBarButtonItem(customView: spinner)
+
+    NativeAPIClient.shared.deleteAccount { [weak self] result in
+      spinner.stopAnimating()
+      self?.navigationItem.rightBarButtonItem = nil
+
+      switch result {
+      case .success:
+        let login = NativeLoginViewController()
+        let nav = UINavigationController(rootViewController: login)
+        if let window = self?.view.window {
+          UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve) {
+            window.rootViewController = nav
+          }
+        }
+      case .failure(let error):
+        let message: String
+        switch error {
+        case .networkError:
+          message = "Network error. Please check your connection and try again."
+        case .unauthorized:
+          message = "Your session has expired. Please sign in again."
+        default:
+          message = "Failed to delete account. Please try again later."
+        }
+        let errorAlert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+        errorAlert.addAction(UIAlertAction(title: "OK", style: .default))
+        self?.present(errorAlert, animated: true)
       }
     }
   }
