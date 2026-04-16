@@ -225,35 +225,71 @@ jobs:
               if r.status_code not in (200, 201):
                   print(f"Response: {r.text}")
 
-          # 6b. Fix missing metadata — set privacy policy URL
-          print("\nFixing version metadata...")
+          # 6b. Fix missing metadata
+          print("\nFixing metadata...")
+
+          # Privacy policy URL is on appInfoLocalizations (NOT appStoreVersionLocalizations)
+          r = requests.get(f"{BASE}/apps/{app_id}/appInfos", headers=headers)
+          if r.status_code == 200:
+              for info in r.json()["data"]:
+                  info_id = info["id"]
+                  info_state = info["attributes"].get("appStoreState", "")
+                  if info_state not in ("READY_FOR_DISTRIBUTION",):
+                      r2 = requests.get(
+                          f"{BASE}/appInfos/{info_id}/appInfoLocalizations",
+                          headers=headers
+                      )
+                      if r2.status_code == 200:
+                          for loc in r2.json()["data"]:
+                              loc_id = loc["id"]
+                              attrs = loc["attributes"]
+                              locale = attrs.get("locale", "")
+                              if not attrs.get("privacyPolicyUrl"):
+                                  print(f"  Setting privacy policy URL for {locale}...")
+                                  r3 = requests.patch(
+                                      f"{BASE}/appInfoLocalizations/{loc_id}",
+                                      headers=headers,
+                                      json={
+                                          "data": {
+                                              "type": "appInfoLocalizations",
+                                              "id": loc_id,
+                                              "attributes": {
+                                                  "privacyPolicyUrl": "https://agent-forge.app/privacy"
+                                              }
+                                          }
+                                      }
+                                  )
+                                  print(f"    Result: {r3.status_code}")
+                                  if r3.status_code >= 400:
+                                      print(f"    {r3.text[:300]}")
+                              else:
+                                  print(f"  {locale}: privacy URL already set")
+
+          # What's New is on appStoreVersionLocalizations
           r = requests.get(
               f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
               headers=headers
           )
           if r.status_code == 200:
-              locs = r.json()["data"]
-              for loc in locs:
+              for loc in r.json()["data"]:
                   loc_id = loc["id"]
                   attrs = loc["attributes"]
-                  locale = attrs.get("locale", "unknown")
-                  updates = {}
-                  if not attrs.get("privacyPolicyUrl"):
-                      updates["privacyPolicyUrl"] = "https://agent-forge.app/privacy"
                   if not attrs.get("whatsNew"):
-                      updates["whatsNew"] = "Initial release of Agent Forge - Build, deploy, and manage AI agents with an intuitive visual builder."
-                  if updates:
-                      print(f"  Updating {locale}: {list(updates.keys())}")
+                      print(f"  Setting whatsNew for {attrs.get('locale')}...")
                       r2 = requests.patch(
                           f"{BASE}/appStoreVersionLocalizations/{loc_id}",
                           headers=headers,
-                          json={"data": {"type": "appStoreVersionLocalizations", "id": loc_id, "attributes": updates}}
+                          json={
+                              "data": {
+                                  "type": "appStoreVersionLocalizations",
+                                  "id": loc_id,
+                                  "attributes": {
+                                      "whatsNew": "Initial release - Build, deploy and manage AI agents with an intuitive visual builder."
+                                  }
+                              }
+                          }
                       )
-                      print(f"  Update result: {r2.status_code}")
-                      if r2.status_code >= 400:
-                          print(f"  Response: {r2.text[:300]}")
-                  else:
-                      print(f"  {locale}: all metadata complete")
+                      print(f"    Result: {r2.status_code}")
 
           # Confirm the submission
           print(f"\nConfirming submission {submission_id}...")
