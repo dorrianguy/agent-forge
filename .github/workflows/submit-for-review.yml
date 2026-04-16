@@ -128,11 +128,13 @@ jobs:
               print(f"Attach response: {r.text}")
               # Non-fatal — build might already be attached
 
-          # 6. Submit for review
+          # 6. Submit for review (try both API endpoints)
           print("Submitting for App Store review...")
-          r = requests.post(f"{BASE}/appStoreReviewSubmissions", headers=headers, json={
+
+          # Try v1 appStoreVersionSubmissions first (works for rejected versions)
+          r = requests.post(f"{BASE}/appStoreVersionSubmissions", headers=headers, json={
               "data": {
-                  "type": "appStoreReviewSubmissions",
+                  "type": "appStoreVersionSubmissions",
                   "relationships": {
                       "appStoreVersion": {
                           "data": {"type": "appStoreVersions", "id": version_id}
@@ -140,19 +142,43 @@ jobs:
                   }
               }
           })
-          print(f"Submit: {r.status_code}")
+          print(f"Submit (v1 endpoint): {r.status_code}")
+
+          if r.status_code in (200, 201):
+              print("🎉 Successfully submitted for App Store review!")
+              sys.exit(0)
+
+          print(f"v1 response: {r.text}")
+
+          # Try v2 appStoreReviewSubmissions endpoint
+          r = requests.post(
+              "https://api.appstoreconnect.apple.com/v2/appStoreReviewSubmissions",
+              headers=headers,
+              json={
+                  "data": {
+                      "type": "appStoreReviewSubmissions",
+                      "relationships": {
+                          "appStoreVersion": {
+                              "data": {"type": "appStoreVersions", "id": version_id}
+                          }
+                      }
+                  }
+              }
+          )
+          print(f"Submit (v2 endpoint): {r.status_code}")
+
           if r.status_code in (200, 201):
               print("🎉 Successfully submitted for App Store review!")
           else:
-              print(f"Submit response: {r.text}")
-              errors = r.json().get("errors", [])
-              for err in errors:
-                  detail = err.get("detail", "")
-                  print(f"  Error: {detail}")
-                  if "screenshot" in detail.lower():
-                      print("  → Need to upload screenshots in App Store Connect")
-                  elif "description" in detail.lower():
-                      print("  → Need to add app description in App Store Connect")
+              print(f"v2 response: {r.text}")
+              try:
+                  errors = r.json().get("errors", [])
+                  for err in errors:
+                      detail = err.get("detail", "")
+                      code = err.get("code", "")
+                      print(f"  Error [{code}]: {detail}")
+              except:
+                  pass
               sys.exit(1)
 
           PYSCRIPT
