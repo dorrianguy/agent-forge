@@ -87,6 +87,49 @@ jobs:
                   print("❌ Timed out waiting for build processing")
                   sys.exit(1)
 
+          # 3b. Set encryption declaration on the build
+          print("Setting encryption declaration on build...")
+          r = requests.put(
+              f"{BASE}/builds/{build_id}/relationships/betaAppReviewSubmission",
+              headers=headers,
+              json={}
+          )
+          # Use the direct build update approach
+          r = requests.patch(f"{BASE}/builds/{build_id}", headers=headers, json={
+              "data": {
+                  "type": "builds",
+                  "id": build_id,
+                  "attributes": {"usesNonExemptEncryption": False}
+              }
+          })
+          print(f"Set encryption: {r.status_code}")
+          if r.status_code >= 400:
+              print(f"Encryption response: {r.text}")
+              # Try alternative endpoint for encryption
+              r2 = requests.post(f"{BASE}/buildBetaDetails", headers=headers, json={
+                  "data": {
+                      "type": "buildBetaDetails",
+                      "relationships": {
+                          "build": {"data": {"type": "builds", "id": build_id}}
+                      }
+                  }
+              })
+              print(f"Alt encryption endpoint: {r2.status_code}: {r2.text[:200]}")
+
+          # 3c. Clean up any orphaned review submissions
+          r = requests.get(f"{BASE}/reviewSubmissions", params={
+              "filter[app]": app_id, "filter[platform]": "IOS"
+          }, headers=headers)
+          if r.status_code == 200:
+              for sub in r.json().get("data", []):
+                  sub_state = sub["attributes"]["state"]
+                  sub_id = sub["id"]
+                  if sub_state in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"):
+                      print(f"Found existing submission {sub_id} in state {sub_state}")
+                  elif sub_state not in ("COMPLETE",):
+                      print(f"Cleaning up orphaned submission {sub_id} (state: {sub_state})")
+                      requests.delete(f"{BASE}/reviewSubmissions/{sub_id}", headers=headers)
+
           # 4. Find or create app store version
           r = requests.get(f"{BASE}/apps/{app_id}/appStoreVersions", params={"limit": "5"}, headers=headers)
           print(f"Versions lookup: {r.status_code}")
