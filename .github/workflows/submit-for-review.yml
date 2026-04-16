@@ -8,212 +8,151 @@ jobs:
     runs-on: macos-26
 
     steps:
-      - name: Generate JWT token for App Store Connect API
-        id: jwt
+      - name: Submit app for review
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
-          echo "$ASC_KEY_P8" | base64 --decode > /tmp/authkey.p8
-          python3 -m venv /tmp/jwt-venv
-          source /tmp/jwt-venv/bin/activate
-          pip install PyJWT cryptography
+          python3 -m venv /tmp/asc-venv
+          source /tmp/asc-venv/bin/activate
+          pip install PyJWT cryptography requests
 
           python3 << 'PYSCRIPT'
-          import jwt, time, os
+          import jwt, time, os, json, requests, sys
 
           key_id = os.environ["ASC_KEY_ID"]
           issuer_id = os.environ["ASC_ISSUER_ID"]
+          key_b64 = os.environ["ASC_KEY_P8"]
 
-          with open("/tmp/authkey.p8", "r") as f:
-              private_key = f.read()
+          # Decode the p8 key
+          import base64
+          key_bytes = base64.b64decode(key_b64)
+          private_key = key_bytes.decode("utf-8")
 
+          # Generate JWT
           now = int(time.time())
           token = jwt.encode(
-              {
-                  "iss": issuer_id,
-                  "iat": now,
-                  "exp": now + 1200,
-                  "aud": "appstoreconnect-v1",
-              },
+              {"iss": issuer_id, "iat": now, "exp": now + 1200, "aud": "appstoreconnect-v1"},
               private_key,
               algorithm="ES256",
               headers={"kid": key_id},
           )
+          print("✅ JWT generated")
 
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"token={token}\n")
+          headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+          BASE = "https://api.appstoreconnect.apple.com/v1"
 
-          print("JWT generated successfully")
-          PYSCRIPT
+          # 1. Find the app
+          r = requests.get(f"{BASE}/apps", params={"filter[bundleId]": "com.agentforge.app"}, headers=headers)
+          print(f"App lookup: {r.status_code}")
+          if r.status_code != 200:
+              print(f"ERROR: {r.text}")
+              sys.exit(1)
+          apps = r.json()["data"]
+          if not apps:
+              print("ERROR: No app found with bundle ID com.agentforge.app")
+              sys.exit(1)
+          app_id = apps[0]["id"]
+          print(f"✅ App ID: {app_id}")
 
-      - name: Find app and latest build
-        id: find
-        env:
-          TOKEN: ${{ steps.jwt.outputs.token }}
-        run: |
-          BUNDLE_ID="com.agentforge.app"
+          # 2. Find the latest build
+          r = requests.get(f"{BASE}/builds", params={"filter[app]": app_id, "sort": "-uploadedDate", "limit": "1"}, headers=headers)
+          print(f"Builds lookup: {r.status_code}")
+          builds = r.json()["data"]
+          if not builds:
+              print("ERROR: No builds found")
+              sys.exit(1)
+          build = builds[0]
+          build_id = build["id"]
+          build_ver = build["attributes"]["version"]
+          build_state = build["attributes"]["processingState"]
+          print(f"✅ Latest build: version {build_ver}, state: {build_state}, id: {build_id}")
 
-          # Get the app ID
-          APP_RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]=$BUNDLE_ID")
-          echo "API response: $APP_RESPONSE"
-          APP_ID=$(echo "$APP_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data'][0]['id']) if 'data' in d and d['data'] else (print('ERROR: ' + json.dumps(d.get('errors',d)), file=sys.stderr) or exit(1))")
-          echo "App ID: $APP_ID"
-          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
+          # 3. Wait for build processing if needed
+          if build_state != "VALID":
+              print(f"Build is {build_state}, waiting for processing...")
+              for attempt in range(30):
+                  time.sleep(30)
+                  r = requests.get(f"{BASE}/builds/{build_id}", headers=headers)
+                  state = r.json()["data"]["attributes"]["processingState"]
+                  print(f"  Attempt {attempt+1}: {state}")
+                  if state == "VALID":
+                      print("✅ Build is ready!")
+                      break
+                  if state in ("FAILED", "INVALID"):
+                      print(f"❌ Build processing failed: {state}")
+                      sys.exit(1)
+              else:
+                  print("❌ Timed out waiting for build processing")
+                  sys.exit(1)
 
-          # Get the latest app store version (PREPARE_FOR_SUBMISSION state)
-          VERSION_RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.appstoreconnect.apple.com/v1/apps/$APP_ID/appStoreVersions?filter[appStoreState]=PREPARE_FOR_SUBMISSION&limit=1")
-          echo "Version response:"
-          echo "$VERSION_RESPONSE" | python3 -m json.tool || echo "$VERSION_RESPONSE"
-
-          VERSION_ID=$(echo "$VERSION_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin)['data']; print(d[0]['id'] if d else 'NONE')")
-          echo "Version ID: $VERSION_ID"
-          echo "version_id=$VERSION_ID" >> "$GITHUB_OUTPUT"
-
-          # Get the latest build
-          BUILDS_RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.appstoreconnect.apple.com/v1/builds?filter[app]=$APP_ID&sort=-uploadedDate&limit=1")
-          echo "Latest build:"
-          echo "$BUILDS_RESPONSE" | python3 -c "import sys,json; b=json.load(sys.stdin)['data'][0]; print(f\"Build: {b['attributes']['version']} (uploaded: {b['attributes']['uploadedDate']}, processing: {b['attributes']['processingState']})\")"
-
-          BUILD_ID=$(echo "$BUILDS_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])")
-          BUILD_STATE=$(echo "$BUILDS_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['attributes']['processingState'])")
-          echo "Build ID: $BUILD_ID (state: $BUILD_STATE)"
-          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
-          echo "build_state=$BUILD_STATE" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for build processing
-        if: steps.find.outputs.build_state != 'VALID'
-        env:
-          TOKEN: ${{ steps.jwt.outputs.token }}
-          BUILD_ID: ${{ steps.find.outputs.build_id }}
-        run: |
-          echo "Build is still processing, waiting..."
-          for i in $(seq 1 30); do
-            sleep 30
-            STATE=$(curl -s -H "Authorization: Bearer $TOKEN" \
-              "https://api.appstoreconnect.apple.com/v1/builds/$BUILD_ID" \
-              | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['attributes']['processingState'])")
-            echo "Attempt $i: Build state = $STATE"
-            if [ "$STATE" = "VALID" ]; then
-              echo "Build is ready!"
-              break
-            fi
-            if [ "$STATE" = "FAILED" ] || [ "$STATE" = "INVALID" ]; then
-              echo "Build processing failed: $STATE"
-              exit 1
-            fi
-          done
-
-      - name: Attach build to version and submit for review
-        env:
-          TOKEN: ${{ steps.jwt.outputs.token }}
-          APP_ID: ${{ steps.find.outputs.app_id }}
-          VERSION_ID: ${{ steps.find.outputs.version_id }}
-          BUILD_ID: ${{ steps.find.outputs.build_id }}
-        run: |
-          # If no version in PREPARE_FOR_SUBMISSION, check other states
-          if [ "$VERSION_ID" = "NONE" ]; then
-            echo "No version in PREPARE_FOR_SUBMISSION state."
-            echo "Checking all versions..."
-            curl -s -H "Authorization: Bearer $TOKEN" \
-              "https://api.appstoreconnect.apple.com/v1/apps/$APP_ID/appStoreVersions?limit=5" \
-              | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)['data']
-          for v in data:
-              print(f\"Version {v['attributes']['versionString']} - State: {v['attributes']['appStoreState']} - ID: {v['id']}\")
-          "
-            echo ""
-            echo "Looking for any editable version..."
-            VERSION_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-              "https://api.appstoreconnect.apple.com/v1/apps/$APP_ID/appStoreVersions?limit=5" \
-              | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)['data']
-          editable = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED']
-          for v in data:
-              if v['attributes']['appStoreState'] in editable:
-                  print(v['id'])
+          # 4. Find or create app store version
+          r = requests.get(f"{BASE}/apps/{app_id}/appStoreVersions", params={"limit": "5"}, headers=headers)
+          print(f"Versions lookup: {r.status_code}")
+          versions = r.json()["data"]
+          version_id = None
+          for v in versions:
+              state = v["attributes"]["appStoreState"]
+              ver = v["attributes"]["versionString"]
+              print(f"  Version {ver}: {state} (id: {v['id']})")
+              if state in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED"):
+                  version_id = v["id"]
+                  print(f"  → Using this version")
                   break
-          else:
-              print('NONE')
-          ")
-            if [ "$VERSION_ID" = "NONE" ]; then
-              echo "No editable version found. Creating new version 1.0..."
-              VERSION_ID=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-                -H "Content-Type: application/json" \
-                "https://api.appstoreconnect.apple.com/v1/appStoreVersions" \
-                -d "{
-                  \"data\": {
-                    \"type\": \"appStoreVersions\",
-                    \"attributes\": {
-                      \"platform\": \"IOS\",
-                      \"versionString\": \"1.0\"
-                    },
-                    \"relationships\": {
-                      \"app\": {
-                        \"data\": {
-                          \"type\": \"apps\",
-                          \"id\": \"$APP_ID\"
-                        }
+
+          if not version_id:
+              print("No editable version found. Creating version 1.0...")
+              r = requests.post(f"{BASE}/appStoreVersions", headers=headers, json={
+                  "data": {
+                      "type": "appStoreVersions",
+                      "attributes": {"platform": "IOS", "versionString": "1.0"},
+                      "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}
+                  }
+              })
+              if r.status_code not in (200, 201):
+                  print(f"ERROR creating version: {r.text}")
+                  sys.exit(1)
+              version_id = r.json()["data"]["id"]
+              print(f"✅ Created version: {version_id}")
+
+          # 5. Attach build to version
+          print(f"Attaching build {build_id} to version {version_id}...")
+          r = requests.patch(
+              f"{BASE}/appStoreVersions/{version_id}/relationships/build",
+              headers=headers,
+              json={"data": {"type": "builds", "id": build_id}}
+          )
+          print(f"Attach build: {r.status_code}")
+          if r.status_code >= 400:
+              print(f"Attach response: {r.text}")
+              # Non-fatal — build might already be attached
+
+          # 6. Submit for review
+          print("Submitting for App Store review...")
+          r = requests.post(f"{BASE}/appStoreReviewSubmissions", headers=headers, json={
+              "data": {
+                  "type": "appStoreReviewSubmissions",
+                  "relationships": {
+                      "appStoreVersion": {
+                          "data": {"type": "appStoreVersions", "id": version_id}
                       }
-                    }
                   }
-                }" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
-              echo "Created version: $VERSION_ID"
-            fi
-          fi
-
-          echo "Using Version ID: $VERSION_ID"
-
-          # Attach build to version
-          echo "Attaching build $BUILD_ID to version $VERSION_ID..."
-          ATTACH_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.appstoreconnect.apple.com/v1/appStoreVersions/$VERSION_ID/relationships/build" \
-            -d "{
-              \"data\": {
-                \"type\": \"builds\",
-                \"id\": \"$BUILD_ID\"
               }
-            }")
-          HTTP_CODE=$(echo "$ATTACH_RESPONSE" | tail -1)
-          BODY=$(echo "$ATTACH_RESPONSE" | head -n -1)
-          echo "Attach response ($HTTP_CODE): $BODY"
+          })
+          print(f"Submit: {r.status_code}")
+          if r.status_code in (200, 201):
+              print("🎉 Successfully submitted for App Store review!")
+          else:
+              print(f"Submit response: {r.text}")
+              errors = r.json().get("errors", [])
+              for err in errors:
+                  detail = err.get("detail", "")
+                  print(f"  Error: {detail}")
+                  if "screenshot" in detail.lower():
+                      print("  → Need to upload screenshots in App Store Connect")
+                  elif "description" in detail.lower():
+                      print("  → Need to add app description in App Store Connect")
+              sys.exit(1)
 
-          # Submit for review
-          echo "Submitting for App Store review..."
-          SUBMIT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.appstoreconnect.apple.com/v1/appStoreReviewSubmissions" \
-            -d "{
-              \"data\": {
-                \"type\": \"appStoreReviewSubmissions\",
-                \"relationships\": {
-                  \"appStoreVersion\": {
-                    \"data\": {
-                      \"type\": \"appStoreVersions\",
-                      \"id\": \"$VERSION_ID\"
-                    }
-                  }
-                }
-              }
-            }")
-          HTTP_CODE=$(echo "$SUBMIT_RESPONSE" | tail -1)
-          BODY=$(echo "$SUBMIT_RESPONSE" | head -n -1)
-          echo "Submit response ($HTTP_CODE): $BODY"
-
-          if echo "$HTTP_CODE" | grep -q "^2"; then
-            echo "✅ Successfully submitted for App Store review!"
-          else
-            echo "⚠️ Submission response code: $HTTP_CODE"
-            echo "Response body:"
-            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
-            echo ""
-            echo "Note: If the response indicates missing metadata, screenshots, or other requirements,"
-            echo "these must be completed in App Store Connect before review can begin."
-          fi
+          PYSCRIPT
