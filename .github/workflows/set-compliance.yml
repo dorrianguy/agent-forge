@@ -1,0 +1,39 @@
+name: Set Encryption Compliance
+
+on:
+  workflow_dispatch:
+
+jobs:
+  set-compliance:
+    runs-on: macos-26
+    steps:
+      - name: Set encryption on all builds
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          python3 -m venv /tmp/v && source /tmp/v/bin/activate && pip install PyJWT cryptography requests
+          python3 << 'PY'
+          import jwt, time, os, requests, base64
+
+          key_id = os.environ["ASC_KEY_ID"]
+          issuer_id = os.environ["ASC_ISSUER_ID"]
+          private_key = base64.b64decode(os.environ["ASC_KEY_P8"]).decode("utf-8")
+          token = jwt.encode({"iss": issuer_id, "iat": int(time.time()), "exp": int(time.time()) + 1200, "aud": "appstoreconnect-v1"}, private_key, algorithm="ES256", headers={"kid": key_id})
+          H = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+          BASE = "https://api.appstoreconnect.apple.com/v1"
+
+          r = requests.get(f"{BASE}/apps", params={"filter[bundleId]": "com.agentforge.app"}, headers=H)
+          app_id = r.json()["data"][0]["id"]
+
+          r = requests.get(f"{BASE}/builds", params={"filter[app]": app_id, "sort": "-uploadedDate", "limit": "10"}, headers=H)
+          for b in r.json()["data"]:
+              ver = b["attributes"]["version"]
+              enc = b["attributes"].get("usesNonExemptEncryption")
+              state = b["attributes"]["processingState"]
+              print(f"Build {ver}: state={state} encryption={enc}")
+              if enc is None and state == "VALID":
+                  r2 = requests.patch(f"{BASE}/builds/{b['id']}", headers=H, json={"data": {"type": "builds", "id": b["id"], "attributes": {"usesNonExemptEncryption": False}}})
+                  print(f"  -> Set: {r2.status_code}")
+          PY
