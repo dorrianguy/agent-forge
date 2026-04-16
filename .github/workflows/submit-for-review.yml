@@ -116,7 +116,8 @@ jobs:
               })
               print(f"Alt encryption endpoint: {r2.status_code}: {r2.text[:200]}")
 
-          # 3c. Clean up any orphaned review submissions
+          # 3c. Check for existing review submissions — reuse if possible
+          existing_submission_id = None
           r = requests.get(f"{BASE}/reviewSubmissions", params={
               "filter[app]": app_id, "filter[platform]": "IOS"
           }, headers=headers)
@@ -124,10 +125,15 @@ jobs:
               for sub in r.json().get("data", []):
                   sub_state = sub["attributes"]["state"]
                   sub_id = sub["id"]
-                  if sub_state in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"):
-                      print(f"Found existing submission {sub_id} in state {sub_state}")
+                  print(f"  Submission {sub_id}: {sub_state}")
+                  if sub_state in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
+                      print(f"🎉 Already submitted and in review! State: {sub_state}")
+                      sys.exit(0)
+                  elif sub_state == "READY_FOR_REVIEW":
+                      existing_submission_id = sub_id
+                      print(f"  → Will confirm this existing submission")
                   elif sub_state not in ("COMPLETE",):
-                      print(f"Cleaning up orphaned submission {sub_id} (state: {sub_state})")
+                      print(f"  → Deleting orphaned submission (state: {sub_state})")
                       requests.delete(f"{BASE}/reviewSubmissions/{sub_id}", headers=headers)
 
           # 4. Find or create app store version
@@ -171,61 +177,50 @@ jobs:
               print(f"Attach response: {r.text}")
               # Non-fatal — build might already be attached
 
-          # 6. Submit for review using reviewSubmissions API (new multi-step flow)
+          # 6. Submit for review
           print("Submitting for App Store review...")
 
-          # Step 6a: Create a review submission
-          r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
-              "data": {
-                  "type": "reviewSubmissions",
-                  "attributes": {"platform": "IOS"},
-                  "relationships": {
-                      "app": {
-                          "data": {"type": "apps", "id": app_id}
+          if existing_submission_id:
+              submission_id = existing_submission_id
+              print(f"Using existing submission: {submission_id}")
+          else:
+              # Create a new review submission
+              r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
+                  "data": {
+                      "type": "reviewSubmissions",
+                      "attributes": {"platform": "IOS"},
+                      "relationships": {
+                          "app": {"data": {"type": "apps", "id": app_id}}
                       }
                   }
-              }
-          })
-          print(f"Create review submission: {r.status_code}")
-          if r.status_code not in (200, 201):
-              print(f"Response: {r.text}")
-              # Check if there's already a pending submission
-              if r.status_code == 409:
-                  print("Conflict — checking for existing submission...")
-                  r2 = requests.get(f"{BASE}/reviewSubmissions", params={
-                      "filter[app]": app_id, "filter[platform]": "IOS",
-                      "filter[state]": "READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW"
-                  }, headers=headers)
-                  if r2.status_code == 200 and r2.json()["data"]:
-                      sub = r2.json()["data"][0]
-                      print(f"🎉 Already submitted! State: {sub['attributes']['state']}")
-                      sys.exit(0)
-              sys.exit(1)
+              })
+              print(f"Create review submission: {r.status_code}")
+              if r.status_code not in (200, 201):
+                  print(f"Response: {r.text}")
+                  sys.exit(1)
+              submission_id = r.json()["data"]["id"]
+              print(f"✅ Review submission created: {submission_id}")
 
-          submission = r.json()["data"]
-          submission_id = submission["id"]
-          print(f"✅ Review submission created: {submission_id}")
-
-          # Step 6b: Add the app store version as a review item
-          r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
-              "data": {
-                  "type": "reviewSubmissionItems",
-                  "relationships": {
-                      "reviewSubmission": {
-                          "data": {"type": "reviewSubmissions", "id": submission_id}
-                      },
-                      "appStoreVersion": {
-                          "data": {"type": "appStoreVersions", "id": version_id}
+              # Add the version as a review item
+              r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
+                  "data": {
+                      "type": "reviewSubmissionItems",
+                      "relationships": {
+                          "reviewSubmission": {
+                              "data": {"type": "reviewSubmissions", "id": submission_id}
+                          },
+                          "appStoreVersion": {
+                              "data": {"type": "appStoreVersions", "id": version_id}
+                          }
                       }
                   }
-              }
-          })
-          print(f"Add review item: {r.status_code}")
-          if r.status_code not in (200, 201):
-              print(f"Response: {r.text}")
-              # Try to continue — the version might be auto-added
+              })
+              print(f"Add review item: {r.status_code}")
+              if r.status_code not in (200, 201):
+                  print(f"Response: {r.text}")
 
-          # Step 6c: Confirm the submission (change state to SUBMITTED)
+          # Confirm the submission
+          print(f"Confirming submission {submission_id}...")
           r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
               "data": {
                   "type": "reviewSubmissions",
@@ -233,7 +228,7 @@ jobs:
                   "attributes": {"submitted": True}
               }
           })
-          print(f"Confirm submission: {r.status_code}")
+          print(f"Confirm: {r.status_code}")
           if r.status_code in (200, 201):
               state = r.json()["data"]["attributes"]["state"]
               print(f"🎉 Successfully submitted for App Store review! State: {state}")
