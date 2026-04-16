@@ -380,29 +380,45 @@ jobs:
                   if not sets:
                       print("  ❌ NO SCREENSHOTS (required for submission!)")
 
-          # Now try to confirm
+          # Now try to confirm — retry up to 10 times (build may still be processing)
           print(f"\n[Confirm Submission]")
-          print(f"Confirming submission {submission_id}...")
-          r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
-              "data": {
-                  "type": "reviewSubmissions",
-                  "id": submission_id,
-                  "attributes": {"submitted": True}
-              }
-          })
-          print(f"Result: {r.status_code}")
-          if r.status_code in (200, 201):
-              state = r.json()["data"]["attributes"]["state"]
-              print(f"🎉 Successfully submitted for App Store review! State: {state}")
-          else:
+          for attempt in range(10):
+              print(f"\nAttempt {attempt+1}/10: Confirming submission {submission_id}...")
+              r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
+                  "data": {
+                      "type": "reviewSubmissions",
+                      "id": submission_id,
+                      "attributes": {"submitted": True}
+                  }
+              })
+              print(f"Result: {r.status_code}")
+              if r.status_code in (200, 201):
+                  state = r.json()["data"]["attributes"]["state"]
+                  print(f"🎉 Successfully submitted for App Store review! State: {state}")
+                  sys.exit(0)
+
               resp = r.json()
               errors = resp.get("errors", [])
+              is_state_error = False
               for err in errors:
-                  print(f"  [{err.get('code')}] {err.get('detail')}")
+                  code = err.get("code", "")
+                  detail = err.get("detail", "")
+                  print(f"  [{code}] {detail}")
+                  if "try again later" in detail.lower() or code == "STATE_ERROR":
+                      is_state_error = True
                   meta = err.get("meta", {})
                   for path, sub_errors in meta.get("associatedErrors", {}).items():
                       for se in sub_errors:
-                          print(f"    → {path}: [{se.get('code')}] {se.get('detail')}")
-              sys.exit(1)
+                          se_detail = se.get("detail", "")
+                          print(f"    → [{se.get('code')}] {se_detail}")
+                          if "try again later" in se_detail.lower():
+                              is_state_error = True
+
+              if is_state_error and attempt < 9:
+                  print(f"  Temporal error — waiting 60s before retry...")
+                  time.sleep(60)
+              else:
+                  print("Non-temporal error or max retries reached.")
+                  sys.exit(1)
 
           PYSCRIPT
