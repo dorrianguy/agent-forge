@@ -116,7 +116,8 @@ jobs:
               })
               print(f"Alt encryption endpoint: {r2.status_code}: {r2.text[:200]}")
 
-          # 3c. Clean up ALL existing non-final review submissions
+          # 3c. Check existing review submissions — find one we can use
+          target_submission_id = None
           r = requests.get(f"{BASE}/reviewSubmissions", params={
               "filter[app]": app_id, "filter[platform]": "IOS"
           }, headers=headers)
@@ -128,12 +129,18 @@ jobs:
                   if sub_state in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
                       print(f"🎉 Already submitted and in review! State: {sub_state}")
                       sys.exit(0)
-                  elif sub_state not in ("COMPLETE",):
-                      print(f"  → Deleting submission (state: {sub_state})")
-                      dr = requests.delete(f"{BASE}/reviewSubmissions/{sub_id}", headers=headers)
-                      print(f"    Delete result: {dr.status_code}")
-          # Small delay to let deletions propagate
-          time.sleep(3)
+                  elif sub_state in ("READY_FOR_REVIEW", "UNRESOLVED_ISSUES"):
+                      # Check if this submission has the version attached
+                      items_r = requests.get(
+                          f"{BASE}/reviewSubmissions/{sub_id}/items",
+                          headers=headers
+                      )
+                      if items_r.status_code == 200:
+                          items = items_r.json().get("data", [])
+                          print(f"    Has {len(items)} items")
+                          if items:
+                              target_submission_id = sub_id
+                              print(f"    → Will use this submission")
 
           # 4. Find or create app store version
           r = requests.get(f"{BASE}/apps/{app_id}/appStoreVersions", params={"limit": "5"}, headers=headers)
@@ -176,43 +183,47 @@ jobs:
               print(f"Attach response: {r.text}")
               # Non-fatal — build might already be attached
 
-          # 6. Submit for review — create fresh submission
+          # 6. Submit for review
           print("Submitting for App Store review...")
 
-          # Create a new review submission
-          r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
-              "data": {
-                  "type": "reviewSubmissions",
-                  "attributes": {"platform": "IOS"},
-                  "relationships": {
-                      "app": {"data": {"type": "apps", "id": app_id}}
-                  }
-              }
-          })
-          print(f"Create review submission: {r.status_code}")
-          if r.status_code not in (200, 201):
-              print(f"Response: {r.text}")
-              sys.exit(1)
-          submission_id = r.json()["data"]["id"]
-          print(f"✅ Review submission created: {submission_id}")
-
-          # Add the version as a review item
-          r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
-              "data": {
-                  "type": "reviewSubmissionItems",
-                  "relationships": {
-                      "reviewSubmission": {
-                          "data": {"type": "reviewSubmissions", "id": submission_id}
-                      },
-                      "appStoreVersion": {
-                          "data": {"type": "appStoreVersions", "id": version_id}
+          if target_submission_id:
+              submission_id = target_submission_id
+              print(f"Using existing submission with items: {submission_id}")
+          else:
+              # Create a new review submission
+              r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
+                  "data": {
+                      "type": "reviewSubmissions",
+                      "attributes": {"platform": "IOS"},
+                      "relationships": {
+                          "app": {"data": {"type": "apps", "id": app_id}}
                       }
                   }
-              }
-          })
-          print(f"Add review item: {r.status_code}")
-          if r.status_code not in (200, 201):
-              print(f"Response: {r.text}")
+              })
+              print(f"Create review submission: {r.status_code}")
+              if r.status_code not in (200, 201):
+                  print(f"Response: {r.text}")
+                  sys.exit(1)
+              submission_id = r.json()["data"]["id"]
+              print(f"✅ Review submission created: {submission_id}")
+
+              # Add the version as a review item
+              r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
+                  "data": {
+                      "type": "reviewSubmissionItems",
+                      "relationships": {
+                          "reviewSubmission": {
+                              "data": {"type": "reviewSubmissions", "id": submission_id}
+                          },
+                          "appStoreVersion": {
+                              "data": {"type": "appStoreVersions", "id": version_id}
+                          }
+                      }
+                  }
+              })
+              print(f"Add review item: {r.status_code}")
+              if r.status_code not in (200, 201):
+                  print(f"Response: {r.text}")
 
           # Confirm the submission
           print(f"Confirming submission {submission_id}...")
