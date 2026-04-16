@@ -82,11 +82,7 @@ class DashboardWebViewController: UIViewController {
   }
 
   @objc private func openDashboard() {
-    let webVC = WebViewController()
-    webVC.urlString = "https://agent-forge.app/dashboard"
-    webVC.pageTitle = "Dashboard"
-    let nav = UINavigationController(rootViewController: webVC)
-    nav.modalPresentationStyle = .fullScreen
-    present(nav, animated: true)
+    // Switch to the My Agents tab (index 0) which shows agent list natively
+    selectedIndex = 0
   }
 }

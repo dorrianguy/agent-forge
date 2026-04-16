@@ -95,5 +95,27 @@ class WebViewController: UIViewController, WKNavigationDelegate {
 
   func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
     spinner.stopAnimating()
+    showErrorState()
+  }
+
+  func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+    spinner.stopAnimating()
+    showErrorState()
+  }
+
+  private func showErrorState() {
+    let errorLabel = UILabel()
+    errorLabel.text = "Unable to load content.\nPlease check your connection and try again."
+    errorLabel.textColor = UIColor(white: 0.5, alpha: 1)
+    errorLabel.font = .systemFont(ofSize: 16)
+    errorLabel.numberOfLines = 0
+    errorLabel.textAlignment = .center
+    errorLabel.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(errorLabel)
+    NSLayoutConstraint.activate([
+      errorLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      errorLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 32),
+    ])
   }
 }
