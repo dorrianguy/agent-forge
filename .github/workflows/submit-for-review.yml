@@ -291,8 +291,98 @@ jobs:
                       )
                       print(f"    Result: {r2.status_code}")
 
-          # Confirm the submission
-          print(f"\nConfirming submission {submission_id}...")
+          # 6c. Full diagnostic dump
+          print("\n=== DIAGNOSTIC DUMP ===")
+
+          # Check app review information
+          print("\n[App Review Info]")
+          r = requests.get(
+              f"{BASE}/appStoreVersions/{version_id}/appStoreReviewDetail",
+              headers=headers
+          )
+          if r.status_code == 200:
+              review = r.json()["data"]["attributes"]
+              print(f"  Contact first name: {'SET' if review.get('contactFirstName') else 'MISSING'}")
+              print(f"  Contact last name: {'SET' if review.get('contactLastName') else 'MISSING'}")
+              print(f"  Contact phone: {'SET' if review.get('contactPhone') else 'MISSING'}")
+              print(f"  Contact email: {'SET' if review.get('contactEmail') else 'MISSING'}")
+              print(f"  Demo username: {'SET' if review.get('demoAccountName') else 'MISSING'}")
+              print(f"  Demo password: {'SET' if review.get('demoAccountPassword') else 'MISSING'}")
+              print(f"  Demo required: {review.get('demoAccountRequired')}")
+              print(f"  Notes: {'SET' if review.get('notes') else 'MISSING'}")
+          elif r.status_code == 404:
+              print("  ❌ NO APP REVIEW INFO SET (this is likely the blocker!)")
+              # Try to create it
+              print("  Creating app review detail...")
+              r2 = requests.post(f"{BASE}/appStoreReviewDetails", headers=headers, json={
+                  "data": {
+                      "type": "appStoreReviewDetails",
+                      "attributes": {
+                          "contactFirstName": "Dorrian",
+                          "contactLastName": "Guy",
+                          "contactPhone": "+1-555-0100",
+                          "contactEmail": "dorrianguy@gmail.com",
+                          "demoAccountRequired": True,
+                          "demoAccountName": "review@agent-forge.app",
+                          "demoAccountPassword": "AppReview2026x",
+                          "notes": "Demo account has 3 pre-built AI agents for testing. Tap 'My Agents' tab to see agents, then tap any agent to start a chat conversation."
+                      },
+                      "relationships": {
+                          "appStoreVersion": {
+                              "data": {"type": "appStoreVersions", "id": version_id}
+                          }
+                      }
+                  }
+              })
+              print(f"  Create review detail: {r2.status_code}")
+              if r2.status_code >= 400:
+                  print(f"  {r2.text[:500]}")
+          else:
+              print(f"  Status: {r.status_code}")
+              print(f"  {r.text[:300]}")
+
+          # Check age rating / content rating
+          print("\n[Age Rating]")
+          r = requests.get(f"{BASE}/apps/{app_id}/appInfos", params={"include": "ageRatingDeclaration"}, headers=headers)
+          if r.status_code == 200:
+              included = r.json().get("included", [])
+              if included:
+                  rating = included[0]["attributes"]
+                  print(f"  Age rating: SET")
+              else:
+                  print(f"  ❌ Age rating: NOT INCLUDED")
+              for info in r.json()["data"]:
+                  print(f"  App info: {info['id']} state={info['attributes'].get('appStoreState')}")
+
+          # Check screenshots count and types
+          print("\n[Screenshots]")
+          r = requests.get(
+              f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
+              headers=headers
+          )
+          if r.status_code == 200 and r.json()["data"]:
+              loc_id = r.json()["data"][0]["id"]
+              sr = requests.get(
+                  f"{BASE}/appStoreVersionLocalizations/{loc_id}/appScreenshotSets",
+                  params={"include": "appScreenshots"},
+                  headers=headers
+              )
+              if sr.status_code == 200:
+                  sets = sr.json()["data"]
+                  included = sr.json().get("included", [])
+                  print(f"  Screenshot sets: {len(sets)}")
+                  print(f"  Total screenshots: {len(included)}")
+                  for ss in sets:
+                      display = ss["attributes"]["screenshotDisplayType"]
+                      # Count screenshots in this set
+                      ss_rels = ss.get("relationships", {}).get("appScreenshots", {}).get("data", [])
+                      print(f"    {display}: {len(ss_rels)} screenshots")
+                  if not sets:
+                      print("  ❌ NO SCREENSHOTS (required for submission!)")
+
+          # Now try to confirm
+          print(f"\n[Confirm Submission]")
+          print(f"Confirming submission {submission_id}...")
           r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
               "data": {
                   "type": "reviewSubmissions",
@@ -300,22 +390,19 @@ jobs:
                   "attributes": {"submitted": True}
               }
           })
-          print(f"Confirm: {r.status_code}")
+          print(f"Result: {r.status_code}")
           if r.status_code in (200, 201):
               state = r.json()["data"]["attributes"]["state"]
               print(f"🎉 Successfully submitted for App Store review! State: {state}")
           else:
-              print(f"Confirm response: {r.text}")
-              try:
-                  errors = r.json().get("errors", [])
-                  for err in errors:
-                      detail = err.get("detail", "")
-                      code = err.get("code", "")
-                      print(f"  Error [{code}]: {detail}")
-              except:
-                  pass
-              print("\n⚠️ If metadata is missing, complete it in App Store Connect:")
-              print("  https://appstoreconnect.apple.com/apps/6760276686/appstore")
+              resp = r.json()
+              errors = resp.get("errors", [])
+              for err in errors:
+                  print(f"  [{err.get('code')}] {err.get('detail')}")
+                  meta = err.get("meta", {})
+                  for path, sub_errors in meta.get("associatedErrors", {}).items():
+                      for se in sub_errors:
+                          print(f"    → {path}: [{se.get('code')}] {se.get('detail')}")
               sys.exit(1)
 
           PYSCRIPT
