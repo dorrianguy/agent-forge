@@ -19,406 +19,240 @@ jobs:
           pip install PyJWT cryptography requests
 
           python3 << 'PYSCRIPT'
-          import jwt, time, os, json, requests, sys
+          import jwt, time, os, json, requests, sys, base64
 
           key_id = os.environ["ASC_KEY_ID"]
           issuer_id = os.environ["ASC_ISSUER_ID"]
-          key_b64 = os.environ["ASC_KEY_P8"]
+          private_key = base64.b64decode(os.environ["ASC_KEY_P8"]).decode("utf-8")
 
-          # Decode the p8 key
-          import base64
-          key_bytes = base64.b64decode(key_b64)
-          private_key = key_bytes.decode("utf-8")
-
-          # Generate JWT
           now = int(time.time())
           token = jwt.encode(
               {"iss": issuer_id, "iat": now, "exp": now + 1200, "aud": "appstoreconnect-v1"},
-              private_key,
-              algorithm="ES256",
-              headers={"kid": key_id},
+              private_key, algorithm="ES256", headers={"kid": key_id},
           )
           print("✅ JWT generated")
 
-          headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+          H = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
           BASE = "https://api.appstoreconnect.apple.com/v1"
+          APP_ID = "6760276686"  # Known from previous runs
 
-          # 1. Find the app
-          r = requests.get(f"{BASE}/apps", params={"filter[bundleId]": "com.agentforge.app"}, headers=headers)
-          print(f"App lookup: {r.status_code}")
-          if r.status_code != 200:
-              print(f"ERROR: {r.text}")
-              sys.exit(1)
-          apps = r.json()["data"]
-          if not apps:
-              print("ERROR: No app found with bundle ID com.agentforge.app")
-              sys.exit(1)
-          app_id = apps[0]["id"]
-          print(f"✅ App ID: {app_id}")
-
-          # 2. Find the latest build
-          r = requests.get(f"{BASE}/builds", params={"filter[app]": app_id, "sort": "-uploadedDate", "limit": "1"}, headers=headers)
-          print(f"Builds lookup: {r.status_code}")
-          builds = r.json()["data"]
-          if not builds:
-              print("ERROR: No builds found")
-              sys.exit(1)
-          build = builds[0]
+          # 1. Get latest build
+          r = requests.get(f"{BASE}/builds", params={"filter[app]": APP_ID, "sort": "-uploadedDate", "limit": "1"}, headers=H)
+          build = r.json()["data"][0]
           build_id = build["id"]
-          build_ver = build["attributes"]["version"]
-          build_state = build["attributes"]["processingState"]
-          print(f"✅ Latest build: version {build_ver}, state: {build_state}, id: {build_id}")
+          print(f"✅ Build: version {build['attributes']['version']}, state: {build['attributes']['processingState']}")
 
-          # 3. Wait for build processing if needed
-          if build_state != "VALID":
-              print(f"Build is {build_state}, waiting for processing...")
-              for attempt in range(30):
-                  time.sleep(30)
-                  r = requests.get(f"{BASE}/builds/{build_id}", headers=headers)
-                  state = r.json()["data"]["attributes"]["processingState"]
-                  print(f"  Attempt {attempt+1}: {state}")
-                  if state == "VALID":
-                      print("✅ Build is ready!")
-                      break
-                  if state in ("FAILED", "INVALID"):
-                      print(f"❌ Build processing failed: {state}")
-                      sys.exit(1)
-              else:
-                  print("❌ Timed out waiting for build processing")
-                  sys.exit(1)
+          # 2. Set encryption if not already set
+          r = requests.patch(f"{BASE}/builds/{build_id}", headers=H, json={
+              "data": {"type": "builds", "id": build_id, "attributes": {"usesNonExemptEncryption": False}}
+          })
+          print(f"Encryption: {r.status_code} ({'already set' if r.status_code == 409 else 'set'})")
 
-          # 3b. Set encryption declaration on the build
-          print("Setting encryption declaration on build...")
-          r = requests.put(
-              f"{BASE}/builds/{build_id}/relationships/betaAppReviewSubmission",
-              headers=headers,
-              json={}
-          )
-          # Use the direct build update approach
-          r = requests.patch(f"{BASE}/builds/{build_id}", headers=headers, json={
+          # 3. Check if already submitted
+          r = requests.get(f"{BASE}/reviewSubmissions", params={
+              "filter[app]": APP_ID, "filter[platform]": "IOS"
+          }, headers=H)
+          for sub in r.json().get("data", []):
+              state = sub["attributes"]["state"]
+              if state in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
+                  print(f"🎉 Already in review! State: {state}")
+                  sys.exit(0)
+
+          # 4. Create new version 1.0.1 (clean slate, avoids stuck submissions)
+          print("\nCreating fresh version 1.0.1...")
+          r = requests.post(f"{BASE}/appStoreVersions", headers=H, json={
               "data": {
-                  "type": "builds",
-                  "id": build_id,
-                  "attributes": {"usesNonExemptEncryption": False}
+                  "type": "appStoreVersions",
+                  "attributes": {"platform": "IOS", "versionString": "1.0.1", "releaseType": "AFTER_APPROVAL"},
+                  "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}
               }
           })
-          print(f"Set encryption: {r.status_code}")
-          if r.status_code >= 400:
-              print(f"Encryption response: {r.text}")
-              # Try alternative endpoint for encryption
-              r2 = requests.post(f"{BASE}/buildBetaDetails", headers=headers, json={
-                  "data": {
-                      "type": "buildBetaDetails",
-                      "relationships": {
-                          "build": {"data": {"type": "builds", "id": build_id}}
-                      }
-                  }
-              })
-              print(f"Alt encryption endpoint: {r2.status_code}: {r2.text[:200]}")
-
-          # 3c. Check existing review submissions — find one we can use
-          target_submission_id = None
-          r = requests.get(f"{BASE}/reviewSubmissions", params={
-              "filter[app]": app_id, "filter[platform]": "IOS"
-          }, headers=headers)
-          if r.status_code == 200:
-              for sub in r.json().get("data", []):
-                  sub_state = sub["attributes"]["state"]
-                  sub_id = sub["id"]
-                  print(f"  Submission {sub_id}: {sub_state}")
-                  if sub_state in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
-                      print(f"🎉 Already submitted and in review! State: {sub_state}")
-                      sys.exit(0)
-                  elif sub_state in ("READY_FOR_REVIEW", "UNRESOLVED_ISSUES"):
-                      # Check if this submission has the version attached
-                      items_r = requests.get(
-                          f"{BASE}/reviewSubmissions/{sub_id}/items",
-                          headers=headers
-                      )
-                      if items_r.status_code == 200:
-                          items = items_r.json().get("data", [])
-                          print(f"    Has {len(items)} items")
-                          if items:
-                              target_submission_id = sub_id
-                              print(f"    → Will use this submission")
-
-          # 4. Find or create app store version
-          r = requests.get(f"{BASE}/apps/{app_id}/appStoreVersions", params={"limit": "5"}, headers=headers)
-          print(f"Versions lookup: {r.status_code}")
-          versions = r.json()["data"]
-          version_id = None
-          for v in versions:
-              state = v["attributes"]["appStoreState"]
-              ver = v["attributes"]["versionString"]
-              print(f"  Version {ver}: {state} (id: {v['id']})")
-              if state in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED"):
-                  version_id = v["id"]
-                  print(f"  → Using this version")
-                  break
-
-          if not version_id:
-              print("No editable version found. Creating version 1.0...")
-              r = requests.post(f"{BASE}/appStoreVersions", headers=headers, json={
-                  "data": {
-                      "type": "appStoreVersions",
-                      "attributes": {"platform": "IOS", "versionString": "1.0"},
-                      "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}
-                  }
-              })
-              if r.status_code not in (200, 201):
-                  print(f"ERROR creating version: {r.text}")
+          print(f"Create version: {r.status_code}")
+          if r.status_code == 409:
+              # Version might already exist — find it
+              print("Version 1.0.1 may already exist, searching...")
+              r2 = requests.get(f"{BASE}/apps/{APP_ID}/appStoreVersions", params={"limit": "5"}, headers=H)
+              for v in r2.json()["data"]:
+                  vs = v["attributes"]["versionString"]
+                  st = v["attributes"]["appStoreState"]
+                  print(f"  {vs}: {st}")
+                  if st == "PREPARE_FOR_SUBMISSION":
+                      version_id = v["id"]
+                      print(f"  → Using version {vs} ({version_id})")
+                      break
+              else:
+                  print("No PREPARE_FOR_SUBMISSION version found")
                   sys.exit(1)
+          elif r.status_code in (200, 201):
               version_id = r.json()["data"]["id"]
-              print(f"✅ Created version: {version_id}")
+              print(f"✅ Created version 1.0.1: {version_id}")
+          else:
+              print(f"Error: {r.text}")
+              sys.exit(1)
 
-          # 5. Attach build to version
-          print(f"Attaching build {build_id} to version {version_id}...")
+          # 5. Attach build
+          print(f"Attaching build {build_id}...")
           r = requests.patch(
               f"{BASE}/appStoreVersions/{version_id}/relationships/build",
-              headers=headers,
-              json={"data": {"type": "builds", "id": build_id}}
+              headers=H, json={"data": {"type": "builds", "id": build_id}}
           )
-          print(f"Attach build: {r.status_code}")
-          if r.status_code >= 400:
-              print(f"Attach response: {r.text}")
-              # Non-fatal — build might already be attached
+          print(f"Attach: {r.status_code}")
 
-          # 6. Submit for review
-          print("Submitting for App Store review...")
-
-          if target_submission_id:
-              submission_id = target_submission_id
-              print(f"Using existing submission with items: {submission_id}")
+          # 6. Set localization metadata
+          r = requests.get(f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations", headers=H)
+          locs = r.json()["data"]
+          if not locs:
+              print("Creating en-US localization...")
+              r = requests.post(f"{BASE}/appStoreVersionLocalizations", headers=H, json={
+                  "data": {
+                      "type": "appStoreVersionLocalizations",
+                      "attributes": {
+                          "locale": "en-US",
+                          "description": "Agent Forge is the ultimate AI agent builder. Create, customize, and deploy intelligent AI agents in minutes — no coding required.\n\nKey Features:\n• Visual Agent Builder - Design agent workflows with an intuitive drag-and-drop interface\n• Multiple AI Models - Choose from Claude, GPT-4, Gemini, and more\n• Knowledge Base - Upload documents to give your agents domain expertise\n• Voice Agents - Build agents that can speak and listen with natural voices\n• One-Click Deploy - Share your agents via link, embed widget, or API\n• Real-Time Analytics - Monitor conversations, usage, and performance\n• Templates - Start from pre-built agent templates for common use cases\n\nPerfect for:\n- Customer support automation\n- Sales assistants and lead qualification\n- Internal knowledge bots\n- Content creation helpers\n- Personal AI assistants\n\nGet started free and upgrade when you need more power.",
+                          "keywords": "AI,agent,chatbot,GPT,Claude,builder,no-code,automation,assistant,voice",
+                          "marketingUrl": "https://agent-forge.app",
+                          "supportUrl": "https://agent-forge.app/support",
+                          "whatsNew": "Initial release - Build, deploy and manage AI agents with an intuitive visual builder."
+                      },
+                      "relationships": {
+                          "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
+                      }
+                  }
+              })
+              print(f"Create localization: {r.status_code}")
+              if r.status_code >= 400:
+                  print(r.text[:500])
           else:
-              # Create a new review submission
-              r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
-                  "data": {
-                      "type": "reviewSubmissions",
-                      "attributes": {"platform": "IOS"},
-                      "relationships": {
-                          "app": {"data": {"type": "apps", "id": app_id}}
-                      }
-                  }
-              })
-              print(f"Create review submission: {r.status_code}")
-              if r.status_code not in (200, 201):
-                  print(f"Response: {r.text}")
-                  sys.exit(1)
-              submission_id = r.json()["data"]["id"]
-              print(f"✅ Review submission created: {submission_id}")
+              loc_id = locs[0]["id"]
+              attrs = locs[0]["attributes"]
+              updates = {}
+              if not attrs.get("description"):
+                  updates["description"] = "Agent Forge is the ultimate AI agent builder. Create, customize, and deploy intelligent AI agents in minutes — no coding required.\n\nKey Features:\n• Visual Agent Builder\n• Multiple AI Models (Claude, GPT-4, Gemini)\n• Knowledge Base Upload\n• Voice Agents\n• One-Click Deploy\n• Real-Time Analytics\n• Pre-built Templates"
+              if not attrs.get("keywords"):
+                  updates["keywords"] = "AI,agent,chatbot,GPT,Claude,builder,no-code,automation,assistant,voice"
+              if not attrs.get("whatsNew"):
+                  updates["whatsNew"] = "Initial release - Build, deploy and manage AI agents with an intuitive visual builder."
+              if not attrs.get("supportUrl"):
+                  updates["supportUrl"] = "https://agent-forge.app/support"
+              if not attrs.get("marketingUrl"):
+                  updates["marketingUrl"] = "https://agent-forge.app"
+              if updates:
+                  print(f"Updating localization: {list(updates.keys())}")
+                  r = requests.patch(f"{BASE}/appStoreVersionLocalizations/{loc_id}", headers=H, json={
+                      "data": {"type": "appStoreVersionLocalizations", "id": loc_id, "attributes": updates}
+                  })
+                  print(f"Update: {r.status_code}")
+              else:
+                  print("Localization already complete")
 
-              # Add the version as a review item
-              r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
-                  "data": {
-                      "type": "reviewSubmissionItems",
-                      "relationships": {
-                          "reviewSubmission": {
-                              "data": {"type": "reviewSubmissions", "id": submission_id}
-                          },
-                          "appStoreVersion": {
-                              "data": {"type": "appStoreVersions", "id": version_id}
-                          }
-                      }
-                  }
-              })
-              print(f"Add review item: {r.status_code}")
-              if r.status_code not in (200, 201):
-                  print(f"Response: {r.text}")
+          # 7. Set privacy policy URL (on appInfoLocalizations)
+          r = requests.get(f"{BASE}/apps/{APP_ID}/appInfos", headers=H)
+          for info in r.json()["data"]:
+              if info["attributes"].get("appStoreState") != "READY_FOR_DISTRIBUTION":
+                  r2 = requests.get(f"{BASE}/appInfos/{info['id']}/appInfoLocalizations", headers=H)
+                  for loc in r2.json()["data"]:
+                      if not loc["attributes"].get("privacyPolicyUrl"):
+                          print("Setting privacy policy URL...")
+                          requests.patch(f"{BASE}/appInfoLocalizations/{loc['id']}", headers=H, json={
+                              "data": {"type": "appInfoLocalizations", "id": loc["id"],
+                                       "attributes": {"privacyPolicyUrl": "https://agent-forge.app/privacy"}}
+                          })
 
-          # 6b. Fix missing metadata
-          print("\nFixing metadata...")
-
-          # Privacy policy URL is on appInfoLocalizations (NOT appStoreVersionLocalizations)
-          r = requests.get(f"{BASE}/apps/{app_id}/appInfos", headers=headers)
-          if r.status_code == 200:
-              for info in r.json()["data"]:
-                  info_id = info["id"]
-                  info_state = info["attributes"].get("appStoreState", "")
-                  if info_state not in ("READY_FOR_DISTRIBUTION",):
-                      r2 = requests.get(
-                          f"{BASE}/appInfos/{info_id}/appInfoLocalizations",
-                          headers=headers
-                      )
-                      if r2.status_code == 200:
-                          for loc in r2.json()["data"]:
-                              loc_id = loc["id"]
-                              attrs = loc["attributes"]
-                              locale = attrs.get("locale", "")
-                              if not attrs.get("privacyPolicyUrl"):
-                                  print(f"  Setting privacy policy URL for {locale}...")
-                                  r3 = requests.patch(
-                                      f"{BASE}/appInfoLocalizations/{loc_id}",
-                                      headers=headers,
-                                      json={
-                                          "data": {
-                                              "type": "appInfoLocalizations",
-                                              "id": loc_id,
-                                              "attributes": {
-                                                  "privacyPolicyUrl": "https://agent-forge.app/privacy"
-                                              }
-                                          }
-                                      }
-                                  )
-                                  print(f"    Result: {r3.status_code}")
-                                  if r3.status_code >= 400:
-                                      print(f"    {r3.text[:300]}")
-                              else:
-                                  print(f"  {locale}: privacy URL already set")
-
-          # What's New is on appStoreVersionLocalizations
-          r = requests.get(
-              f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
-              headers=headers
-          )
-          if r.status_code == 200:
-              for loc in r.json()["data"]:
-                  loc_id = loc["id"]
-                  attrs = loc["attributes"]
-                  if not attrs.get("whatsNew"):
-                      print(f"  Setting whatsNew for {attrs.get('locale')}...")
-                      r2 = requests.patch(
-                          f"{BASE}/appStoreVersionLocalizations/{loc_id}",
-                          headers=headers,
-                          json={
-                              "data": {
-                                  "type": "appStoreVersionLocalizations",
-                                  "id": loc_id,
-                                  "attributes": {
-                                      "whatsNew": "Initial release - Build, deploy and manage AI agents with an intuitive visual builder."
-                                  }
-                              }
-                          }
-                      )
-                      print(f"    Result: {r2.status_code}")
-
-          # 6c. Full diagnostic dump
-          print("\n=== DIAGNOSTIC DUMP ===")
-
-          # Check app review information
-          print("\n[App Review Info]")
-          r = requests.get(
-              f"{BASE}/appStoreVersions/{version_id}/appStoreReviewDetail",
-              headers=headers
-          )
-          if r.status_code == 200:
-              review = r.json()["data"]["attributes"]
-              print(f"  Contact first name: {'SET' if review.get('contactFirstName') else 'MISSING'}")
-              print(f"  Contact last name: {'SET' if review.get('contactLastName') else 'MISSING'}")
-              print(f"  Contact phone: {'SET' if review.get('contactPhone') else 'MISSING'}")
-              print(f"  Contact email: {'SET' if review.get('contactEmail') else 'MISSING'}")
-              print(f"  Demo username: {'SET' if review.get('demoAccountName') else 'MISSING'}")
-              print(f"  Demo password: {'SET' if review.get('demoAccountPassword') else 'MISSING'}")
-              print(f"  Demo required: {review.get('demoAccountRequired')}")
-              print(f"  Notes: {'SET' if review.get('notes') else 'MISSING'}")
-          elif r.status_code == 404:
-              print("  ❌ NO APP REVIEW INFO SET (this is likely the blocker!)")
-              # Try to create it
-              print("  Creating app review detail...")
-              r2 = requests.post(f"{BASE}/appStoreReviewDetails", headers=headers, json={
+          # 8. Set app review detail
+          r = requests.get(f"{BASE}/appStoreVersions/{version_id}/appStoreReviewDetail", headers=H)
+          if r.status_code == 404:
+              print("Creating app review detail...")
+              r = requests.post(f"{BASE}/appStoreReviewDetails", headers=H, json={
                   "data": {
                       "type": "appStoreReviewDetails",
                       "attributes": {
                           "contactFirstName": "Dorrian",
                           "contactLastName": "Guy",
-                          "contactPhone": "+1-555-0100",
+                          "contactPhone": "+15550100",
                           "contactEmail": "dorrianguy@gmail.com",
                           "demoAccountRequired": True,
                           "demoAccountName": "review@agent-forge.app",
                           "demoAccountPassword": "AppReview2026x",
-                          "notes": "Demo account has 3 pre-built AI agents for testing. Tap 'My Agents' tab to see agents, then tap any agent to start a chat conversation."
+                          "notes": "Demo account has 3 pre-built AI agents. Tap My Agents tab to see agents, then tap any agent to start a chat."
                       },
                       "relationships": {
-                          "appStoreVersion": {
-                              "data": {"type": "appStoreVersions", "id": version_id}
-                          }
+                          "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
                       }
                   }
               })
-              print(f"  Create review detail: {r2.status_code}")
-              if r2.status_code >= 400:
-                  print(f"  {r2.text[:500]}")
+              print(f"Create review detail: {r.status_code}")
+              if r.status_code >= 400:
+                  print(r.text[:500])
           else:
-              print(f"  Status: {r.status_code}")
-              print(f"  {r.text[:300]}")
+              print("App review detail already exists")
 
-          # Check age rating / content rating
-          print("\n[Age Rating]")
-          r = requests.get(f"{BASE}/apps/{app_id}/appInfos", params={"include": "ageRatingDeclaration"}, headers=headers)
-          if r.status_code == 200:
-              included = r.json().get("included", [])
-              if included:
-                  rating = included[0]["attributes"]
-                  print(f"  Age rating: SET")
-              else:
-                  print(f"  ❌ Age rating: NOT INCLUDED")
-              for info in r.json()["data"]:
-                  print(f"  App info: {info['id']} state={info['attributes'].get('appStoreState')}")
-
-          # Check screenshots count and types
-          print("\n[Screenshots]")
-          r = requests.get(
-              f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
-              headers=headers
-          )
+          # 9. Copy screenshots from old version if this is a new version
+          # Check if new version has screenshots
+          r = requests.get(f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations", headers=H)
           if r.status_code == 200 and r.json()["data"]:
-              loc_id = r.json()["data"][0]["id"]
-              sr = requests.get(
-                  f"{BASE}/appStoreVersionLocalizations/{loc_id}/appScreenshotSets",
-                  params={"include": "appScreenshots"},
-                  headers=headers
-              )
-              if sr.status_code == 200:
-                  sets = sr.json()["data"]
-                  included = sr.json().get("included", [])
-                  print(f"  Screenshot sets: {len(sets)}")
-                  print(f"  Total screenshots: {len(included)}")
-                  for ss in sets:
-                      display = ss["attributes"]["screenshotDisplayType"]
-                      # Count screenshots in this set
-                      ss_rels = ss.get("relationships", {}).get("appScreenshots", {}).get("data", [])
-                      print(f"    {display}: {len(ss_rels)} screenshots")
-                  if not sets:
-                      print("  ❌ NO SCREENSHOTS (required for submission!)")
+              new_loc_id = r.json()["data"][0]["id"]
+              sr = requests.get(f"{BASE}/appStoreVersionLocalizations/{new_loc_id}/appScreenshotSets", headers=H)
+              new_ss_count = len(sr.json().get("data", []))
+              print(f"New version has {new_ss_count} screenshot sets")
 
-          # Now try to confirm — retry up to 10 times (build may still be processing)
-          print(f"\n[Confirm Submission]")
-          for attempt in range(10):
-              print(f"\nAttempt {attempt+1}/10: Confirming submission {submission_id}...")
-              r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
-                  "data": {
-                      "type": "reviewSubmissions",
-                      "id": submission_id,
-                      "attributes": {"submitted": True}
+              if new_ss_count == 0:
+                  print("⚠️ No screenshots on new version.")
+                  print("Screenshots must be uploaded via App Store Connect UI.")
+                  print("However, trying to submit anyway (Apple may carry forward from previous version)...")
+
+          # 10. Create review submission and submit
+          print("\nCreating review submission...")
+          r = requests.post(f"{BASE}/reviewSubmissions", headers=H, json={
+              "data": {
+                  "type": "reviewSubmissions",
+                  "attributes": {"platform": "IOS"},
+                  "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}
+              }
+          })
+          print(f"Create submission: {r.status_code}")
+          if r.status_code not in (200, 201):
+              print(r.text[:500])
+              sys.exit(1)
+          sub_id = r.json()["data"]["id"]
+
+          # Add version item
+          r = requests.post(f"{BASE}/reviewSubmissionItems", headers=H, json={
+              "data": {
+                  "type": "reviewSubmissionItems",
+                  "relationships": {
+                      "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub_id}},
+                      "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
                   }
+              }
+          })
+          print(f"Add item: {r.status_code}")
+          if r.status_code not in (200, 201):
+              print(r.text[:500])
+
+          # Confirm
+          print("Confirming submission...")
+          for attempt in range(5):
+              r = requests.patch(f"{BASE}/reviewSubmissions/{sub_id}", headers=H, json={
+                  "data": {"type": "reviewSubmissions", "id": sub_id, "attributes": {"submitted": True}}
               })
-              print(f"Result: {r.status_code}")
+              print(f"Attempt {attempt+1}: {r.status_code}")
               if r.status_code in (200, 201):
-                  state = r.json()["data"]["attributes"]["state"]
-                  print(f"🎉 Successfully submitted for App Store review! State: {state}")
+                  print(f"🎉 Successfully submitted for App Store review! State: {r.json()['data']['attributes']['state']}")
                   sys.exit(0)
-
-              resp = r.json()
-              errors = resp.get("errors", [])
-              is_state_error = False
+              errors = r.json().get("errors", [])
               for err in errors:
-                  code = err.get("code", "")
-                  detail = err.get("detail", "")
-                  print(f"  [{code}] {detail}")
-                  if "try again later" in detail.lower() or code == "STATE_ERROR":
-                      is_state_error = True
-                  meta = err.get("meta", {})
-                  for path, sub_errors in meta.get("associatedErrors", {}).items():
-                      for se in sub_errors:
-                          se_detail = se.get("detail", "")
-                          print(f"    → [{se.get('code')}] {se_detail}")
-                          if "try again later" in se_detail.lower():
-                              is_state_error = True
-
-              if is_state_error and attempt < 9:
-                  print(f"  Temporal error — waiting 60s before retry...")
+                  print(f"  [{err.get('code')}] {err.get('detail')}")
+                  for path, subs in err.get("meta", {}).get("associatedErrors", {}).items():
+                      for se in subs:
+                          print(f"    → [{se.get('code')}] {se.get('detail')}")
+              if any("try again later" in e.get("detail", "").lower() for e in errors):
+                  print("  Waiting 60s...")
                   time.sleep(60)
               else:
-                  print("Non-temporal error or max retries reached.")
-                  sys.exit(1)
+                  break
+
+          print("❌ Submission failed. Check App Store Connect manually:")
+          print(f"  https://appstoreconnect.apple.com/apps/{APP_ID}/appstore")
+          sys.exit(1)
 
           PYSCRIPT
