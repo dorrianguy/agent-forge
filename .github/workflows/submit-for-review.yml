@@ -128,49 +128,74 @@ jobs:
               print(f"Attach response: {r.text}")
               # Non-fatal — build might already be attached
 
-          # 6. Submit for review (try both API endpoints)
+          # 6. Submit for review using reviewSubmissions API (new multi-step flow)
           print("Submitting for App Store review...")
 
-          # Try v1 appStoreVersionSubmissions first (works for rejected versions)
-          r = requests.post(f"{BASE}/appStoreVersionSubmissions", headers=headers, json={
+          # Step 6a: Create a review submission
+          r = requests.post(f"{BASE}/reviewSubmissions", headers=headers, json={
               "data": {
-                  "type": "appStoreVersionSubmissions",
+                  "type": "reviewSubmissions",
+                  "attributes": {"platform": "IOS"},
                   "relationships": {
+                      "app": {
+                          "data": {"type": "apps", "id": app_id}
+                      }
+                  }
+              }
+          })
+          print(f"Create review submission: {r.status_code}")
+          if r.status_code not in (200, 201):
+              print(f"Response: {r.text}")
+              # Check if there's already a pending submission
+              if r.status_code == 409:
+                  print("Conflict — checking for existing submission...")
+                  r2 = requests.get(f"{BASE}/reviewSubmissions", params={
+                      "filter[app]": app_id, "filter[platform]": "IOS",
+                      "filter[state]": "READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW"
+                  }, headers=headers)
+                  if r2.status_code == 200 and r2.json()["data"]:
+                      sub = r2.json()["data"][0]
+                      print(f"🎉 Already submitted! State: {sub['attributes']['state']}")
+                      sys.exit(0)
+              sys.exit(1)
+
+          submission = r.json()["data"]
+          submission_id = submission["id"]
+          print(f"✅ Review submission created: {submission_id}")
+
+          # Step 6b: Add the app store version as a review item
+          r = requests.post(f"{BASE}/reviewSubmissionItems", headers=headers, json={
+              "data": {
+                  "type": "reviewSubmissionItems",
+                  "relationships": {
+                      "reviewSubmission": {
+                          "data": {"type": "reviewSubmissions", "id": submission_id}
+                      },
                       "appStoreVersion": {
                           "data": {"type": "appStoreVersions", "id": version_id}
                       }
                   }
               }
           })
-          print(f"Submit (v1 endpoint): {r.status_code}")
+          print(f"Add review item: {r.status_code}")
+          if r.status_code not in (200, 201):
+              print(f"Response: {r.text}")
+              # Try to continue — the version might be auto-added
 
-          if r.status_code in (200, 201):
-              print("🎉 Successfully submitted for App Store review!")
-              sys.exit(0)
-
-          print(f"v1 response: {r.text}")
-
-          # Try v2 appStoreReviewSubmissions endpoint
-          r = requests.post(
-              "https://api.appstoreconnect.apple.com/v2/appStoreReviewSubmissions",
-              headers=headers,
-              json={
-                  "data": {
-                      "type": "appStoreReviewSubmissions",
-                      "relationships": {
-                          "appStoreVersion": {
-                              "data": {"type": "appStoreVersions", "id": version_id}
-                          }
-                      }
-                  }
+          # Step 6c: Confirm the submission (change state to SUBMITTED)
+          r = requests.patch(f"{BASE}/reviewSubmissions/{submission_id}", headers=headers, json={
+              "data": {
+                  "type": "reviewSubmissions",
+                  "id": submission_id,
+                  "attributes": {"submitted": True}
               }
-          )
-          print(f"Submit (v2 endpoint): {r.status_code}")
-
+          })
+          print(f"Confirm submission: {r.status_code}")
           if r.status_code in (200, 201):
-              print("🎉 Successfully submitted for App Store review!")
+              state = r.json()["data"]["attributes"]["state"]
+              print(f"🎉 Successfully submitted for App Store review! State: {state}")
           else:
-              print(f"v2 response: {r.text}")
+              print(f"Confirm response: {r.text}")
               try:
                   errors = r.json().get("errors", [])
                   for err in errors:
