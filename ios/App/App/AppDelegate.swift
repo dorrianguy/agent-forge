@@ -19,20 +19,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             }
         }
 
-        // Set up native root view controller
-        window = UIWindow(frame: UIScreen.main.bounds)
-        window?.overrideUserInterfaceStyle = .dark
-
-        if NativeAPIClient.shared.isLoggedIn {
-            window?.rootViewController = MainTabBarController()
+        // Pre-iOS 13 fallback: SceneDelegate handles window on iOS 13+
+        if #available(iOS 13.0, *) {
+            // SceneDelegate handles window creation
         } else {
-            let loginVC = NativeLoginViewController()
-            window?.rootViewController = UINavigationController(rootViewController: loginVC)
+            window = UIWindow(frame: UIScreen.main.bounds)
+            window?.overrideUserInterfaceStyle = .dark
+
+            if NativeAPIClient.shared.isLoggedIn {
+                window?.rootViewController = MainTabBarController()
+            } else {
+                let loginVC = NativeLoginViewController()
+                window?.rootViewController = UINavigationController(rootViewController: loginVC)
+            }
+
+            window?.makeKeyAndVisible()
         }
 
-        window?.makeKeyAndVisible()
-
         return true
+    }
+
+    // MARK: - UISceneSession Lifecycle
+
+    @available(iOS 13.0, *)
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        return UISceneConfiguration(
+            name: "Default Configuration",
+            sessionRole: connectingSceneSession.role
+        )
     }
 
     // MARK: - Push Notification Registration
@@ -70,6 +88,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func applicationDidBecomeActive(_ application: UIApplication) {}
 
     func applicationWillTerminate(_ application: UIApplication) {}
+
+    // MARK: - Deep Links (pre-iOS 13)
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         return false
