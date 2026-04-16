@@ -82,7 +82,7 @@ class DashboardWebViewController: UIViewController {
   }
 
   @objc private func openDashboard() {
-    // Switch to the My Agents tab (index 0) which shows agent list natively
-    selectedIndex = 0
+    // Switch to the Agents tab via the parent tab bar controller
+    tabBarController?.selectedIndex = 0
   }
 }
