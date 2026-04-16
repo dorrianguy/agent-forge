@@ -8,9 +8,6 @@ jobs:
     runs-on: macos-26
 
     steps:
-      - name: Install PyJWT
-        run: pip3 install PyJWT cryptography
-
       - name: Generate JWT token for App Store Connect API
         id: jwt
         env:
@@ -19,6 +16,9 @@ jobs:
           ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
         run: |
           echo "$ASC_KEY_P8" | base64 --decode > /tmp/authkey.p8
+          python3 -m venv /tmp/jwt-venv
+          source /tmp/jwt-venv/bin/activate
+          pip install PyJWT cryptography
 
           python3 << 'PYSCRIPT'
           import jwt, time, os
