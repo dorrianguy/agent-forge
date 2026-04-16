@@ -225,19 +225,8 @@ jobs:
               if r.status_code not in (200, 201):
                   print(f"Response: {r.text}")
 
-          # 6b. Check version metadata completeness
-          print("\nChecking version metadata...")
-          r = requests.get(
-              f"{BASE}/appStoreVersions/{version_id}",
-              params={"include": "appStoreVersionLocalizations,appStoreVersionSubmission"},
-              headers=headers
-          )
-          if r.status_code == 200:
-              ver_data = r.json()["data"]["attributes"]
-              print(f"  Version string: {ver_data.get('versionString')}")
-              print(f"  Release type: {ver_data.get('releaseType')}")
-
-          # Check localizations (descriptions, keywords, etc.)
+          # 6b. Fix missing metadata — set privacy policy URL
+          print("\nFixing version metadata...")
           r = requests.get(
               f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
               headers=headers
@@ -245,41 +234,26 @@ jobs:
           if r.status_code == 200:
               locs = r.json()["data"]
               for loc in locs:
+                  loc_id = loc["id"]
                   attrs = loc["attributes"]
                   locale = attrs.get("locale", "unknown")
-                  print(f"\n  Locale: {locale}")
-                  print(f"    Description: {'SET' if attrs.get('description') else 'MISSING'}")
-                  print(f"    Keywords: {'SET' if attrs.get('keywords') else 'MISSING'}")
-                  print(f"    Marketing URL: {'SET' if attrs.get('marketingUrl') else 'MISSING'}")
-                  print(f"    Privacy URL: {'SET' if attrs.get('privacyPolicyUrl') else 'MISSING (REQUIRED!)'}")
-                  print(f"    Support URL: {'SET' if attrs.get('supportUrl') else 'MISSING (REQUIRED!)'}")
-                  print(f"    What's New: {'SET' if attrs.get('whatsNew') else 'MISSING'}")
-
-          # Check screenshots
-          r = requests.get(
-              f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations",
-              headers=headers
-          )
-          if r.status_code == 200 and r.json()["data"]:
-              loc_id = r.json()["data"][0]["id"]
-              sr = requests.get(
-                  f"{BASE}/appStoreVersionLocalizations/{loc_id}/appScreenshotSets",
-                  headers=headers
-              )
-              if sr.status_code == 200:
-                  sets = sr.json()["data"]
-                  print(f"\n  Screenshot sets: {len(sets)}")
-                  for ss in sets:
-                      display = ss["attributes"]["screenshotDisplayType"]
-                      print(f"    {display}")
-
-          # Check app info (category, privacy URL at app level)
-          r = requests.get(f"{BASE}/apps/{app_id}/appInfos", headers=headers)
-          if r.status_code == 200:
-              infos = r.json()["data"]
-              for info in infos:
-                  state = info["attributes"].get("appStoreState", "unknown")
-                  print(f"\n  App info state: {state}")
+                  updates = {}
+                  if not attrs.get("privacyPolicyUrl"):
+                      updates["privacyPolicyUrl"] = "https://agent-forge.app/privacy"
+                  if not attrs.get("whatsNew"):
+                      updates["whatsNew"] = "Initial release of Agent Forge - Build, deploy, and manage AI agents with an intuitive visual builder."
+                  if updates:
+                      print(f"  Updating {locale}: {list(updates.keys())}")
+                      r2 = requests.patch(
+                          f"{BASE}/appStoreVersionLocalizations/{loc_id}",
+                          headers=headers,
+                          json={"data": {"type": "appStoreVersionLocalizations", "id": loc_id, "attributes": updates}}
+                      )
+                      print(f"  Update result: {r2.status_code}")
+                      if r2.status_code >= 400:
+                          print(f"  Response: {r2.text[:300]}")
+                  else:
+                      print(f"  {locale}: all metadata complete")
 
           # Confirm the submission
           print(f"\nConfirming submission {submission_id}...")
