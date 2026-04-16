@@ -58,37 +58,58 @@ jobs:
                   print(f"🎉 Already in review! State: {state}")
                   sys.exit(0)
 
-          # 4. Create new version 1.0.1 (clean slate, avoids stuck submissions)
-          print("\nCreating fresh version 1.0.1...")
-          r = requests.post(f"{BASE}/appStoreVersions", headers=H, json={
-              "data": {
-                  "type": "appStoreVersions",
-                  "attributes": {"platform": "IOS", "versionString": "1.0.1", "releaseType": "AFTER_APPROVAL"},
-                  "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}
-              }
-          })
-          print(f"Create version: {r.status_code}")
-          if r.status_code == 409:
-              # Version might already exist — find it
-              print("Version 1.0.1 may already exist, searching...")
-              r2 = requests.get(f"{BASE}/apps/{APP_ID}/appStoreVersions", params={"limit": "5"}, headers=H)
-              for v in r2.json()["data"]:
-                  vs = v["attributes"]["versionString"]
-                  st = v["attributes"]["appStoreState"]
-                  print(f"  {vs}: {st}")
-                  if st == "PREPARE_FOR_SUBMISSION":
-                      version_id = v["id"]
-                      print(f"  → Using version {vs} ({version_id})")
-                      break
+          # 4. Free version from stuck submissions by removing items
+          print("\nFreeing version from stuck submissions...")
+          r = requests.get(f"{BASE}/reviewSubmissions", params={
+              "filter[app]": APP_ID, "filter[platform]": "IOS"
+          }, headers=H)
+          for sub in r.json().get("data", []):
+              sub_state = sub["attributes"]["state"]
+              sub_id = sub["id"]
+              print(f"  Submission {sub_id}: {sub_state}")
+              if sub_state in ("UNRESOLVED_ISSUES", "READY_FOR_REVIEW"):
+                  # Get items in this submission
+                  ir = requests.get(f"{BASE}/reviewSubmissions/{sub_id}/items", headers=H)
+                  if ir.status_code == 200:
+                      for item in ir.json().get("data", []):
+                          item_id = item["id"]
+                          print(f"    Removing item {item_id}...")
+                          dr = requests.delete(f"{BASE}/reviewSubmissionItems/{item_id}", headers=H)
+                          print(f"    Delete item: {dr.status_code}")
+                          if dr.status_code >= 400:
+                              print(f"    {dr.text[:200]}")
+                  # Try to delete the submission itself
+                  dr = requests.delete(f"{BASE}/reviewSubmissions/{sub_id}", headers=H)
+                  print(f"    Delete submission: {dr.status_code}")
+
+          time.sleep(2)
+
+          # 5. Find version in PREPARE_FOR_SUBMISSION
+          print("\nFinding version...")
+          r = requests.get(f"{BASE}/apps/{APP_ID}/appStoreVersions", params={"limit": "5"}, headers=H)
+          version_id = None
+          for v in r.json()["data"]:
+              vs = v["attributes"]["versionString"]
+              st = v["attributes"]["appStoreState"]
+              print(f"  {vs}: {st}")
+              if st == "PREPARE_FOR_SUBMISSION":
+                  version_id = v["id"]
+                  print(f"  → Using {vs} ({version_id})")
+                  break
+          if not version_id:
+              print("No PREPARE_FOR_SUBMISSION version found, creating 1.0.1...")
+              r = requests.post(f"{BASE}/appStoreVersions", headers=H, json={
+                  "data": {
+                      "type": "appStoreVersions",
+                      "attributes": {"platform": "IOS", "versionString": "1.0.1"},
+                      "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}}
+                  }
+              })
+              if r.status_code in (200, 201):
+                  version_id = r.json()["data"]["id"]
               else:
-                  print("No PREPARE_FOR_SUBMISSION version found")
+                  print(f"Error: {r.text[:300]}")
                   sys.exit(1)
-          elif r.status_code in (200, 201):
-              version_id = r.json()["data"]["id"]
-              print(f"✅ Created version 1.0.1: {version_id}")
-          else:
-              print(f"Error: {r.text}")
-              sys.exit(1)
 
           # 5. Attach build
           print(f"Attaching build {build_id}...")
