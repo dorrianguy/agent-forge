@@ -58,29 +58,53 @@ jobs:
                   print(f"🎉 Already in review! State: {state}")
                   sys.exit(0)
 
-          # 4. Free version from stuck submissions by removing items
-          print("\nFreeing version from stuck submissions...")
+          # 4. Try to free version by deleting old v1 submission
+          print("\nTrying to free version...")
+
+          # Check for v1 appStoreVersionSubmission on the version
+          r = requests.get(f"{BASE}/apps/{APP_ID}/appStoreVersions", params={"limit": "5"}, headers=H)
+          for v in r.json()["data"]:
+              vs = v["attributes"]["versionString"]
+              st = v["attributes"]["appStoreState"]
+              vid = v["id"]
+              print(f"  {vs}: {st} ({vid})")
+
+              if st == "PREPARE_FOR_SUBMISSION":
+                  # Try to delete any v1 submission object
+                  dr = requests.delete(f"{BASE}/appStoreVersionSubmissions/{vid}", headers=H)
+                  print(f"    Delete v1 submission: {dr.status_code}")
+
+                  # Also try via the relationship
+                  dr2 = requests.get(f"{BASE}/appStoreVersions/{vid}/appStoreVersionSubmission", headers=H)
+                  print(f"    Get v1 submission: {dr2.status_code}")
+                  if dr2.status_code == 200:
+                      v1_sub_id = dr2.json()["data"]["id"]
+                      print(f"    Found v1 submission: {v1_sub_id}")
+                      dr3 = requests.delete(f"{BASE}/appStoreVersionSubmissions/{v1_sub_id}", headers=H)
+                      print(f"    Delete: {dr3.status_code}")
+
+          # Try removing items from the stuck v2 submission
           r = requests.get(f"{BASE}/reviewSubmissions", params={
               "filter[app]": APP_ID, "filter[platform]": "IOS"
           }, headers=H)
           for sub in r.json().get("data", []):
               sub_state = sub["attributes"]["state"]
               sub_id = sub["id"]
-              print(f"  Submission {sub_id}: {sub_state}")
-              if sub_state in ("UNRESOLVED_ISSUES", "READY_FOR_REVIEW"):
-                  # Get items in this submission
+              if sub_state == "UNRESOLVED_ISSUES":
+                  print(f"\n  Stuck submission {sub_id}: {sub_state}")
                   ir = requests.get(f"{BASE}/reviewSubmissions/{sub_id}/items", headers=H)
-                  if ir.status_code == 200:
-                      for item in ir.json().get("data", []):
-                          item_id = item["id"]
-                          print(f"    Removing item {item_id}...")
-                          dr = requests.delete(f"{BASE}/reviewSubmissionItems/{item_id}", headers=H)
-                          print(f"    Delete item: {dr.status_code}")
-                          if dr.status_code >= 400:
-                              print(f"    {dr.text[:200]}")
-                  # Try to delete the submission itself
-                  dr = requests.delete(f"{BASE}/reviewSubmissions/{sub_id}", headers=H)
-                  print(f"    Delete submission: {dr.status_code}")
+                  for item in ir.json().get("data", []):
+                      item_id = item["id"]
+                      # Try to remove
+                      dr = requests.delete(f"{BASE}/reviewSubmissionItems/{item_id}", headers=H)
+                      print(f"    Delete item {item_id}: {dr.status_code}")
+                      if dr.status_code >= 400:
+                          detail = ""
+                          try:
+                              detail = dr.json()["errors"][0]["detail"]
+                          except:
+                              pass
+                          print(f"    Detail: {detail}")
 
           time.sleep(2)
 
