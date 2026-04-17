@@ -1,6 +1,18 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import config from '@/config.json';
 import PricingClient from './PricingClient';
+
+export const metadata: Metadata = {
+  title: 'Pricing — Affordable Plans for Every Team',
+  description: 'Agent Forge pricing starts free. Scale to Pro ($99/mo) or Enterprise with unlimited AI agents, voice capabilities, and priority support. No credit card required.',
+  alternates: { canonical: '/pricing' },
+  openGraph: {
+    title: 'Agent Forge Pricing — Build AI Agents at Any Scale',
+    description: 'From free to enterprise. Create AI agents, chatbots, and voice assistants with transparent pricing.',
+    url: 'https://agent-forge.app/pricing',
+  },
+};
 
 // Server component — plan data renders as static HTML for crawlers
 export default function PricingPage() {
