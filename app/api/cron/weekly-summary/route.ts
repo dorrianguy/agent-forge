@@ -21,9 +21,17 @@ import { logger } from '@/lib/logger';
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
-  // Verify authorization
+  // Verify authorization — CRON_SECRET is required
+  if (!CRON_SECRET) {
+    logger.error('CRON_SECRET not configured — cron endpoint disabled');
+    return NextResponse.json(
+      { error: 'Cron endpoint not configured' },
+      { status: 503 }
+    );
+  }
+
   const authHeader = request.headers.get('authorization');
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

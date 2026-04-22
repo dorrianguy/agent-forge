@@ -133,10 +133,14 @@ export async function getAgents(): Promise<Agent[]> {
 }
 
 export async function getAgent(id: string): Promise<Agent | null> {
+  const user = await getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await getSupabase()
     .from('agents')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
 
   if (error) throw error;
@@ -170,10 +174,14 @@ export async function createAgent(agent: {
 }
 
 export async function updateAgent(id: string, updates: Partial<Agent>): Promise<Agent> {
+  const user = await getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await getSupabase()
     .from('agents')
     .update(updates)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -182,10 +190,14 @@ export async function updateAgent(id: string, updates: Partial<Agent>): Promise<
 }
 
 export async function deleteAgent(id: string) {
+  const user = await getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await getSupabase()
     .from('agents')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) throw error;
 }

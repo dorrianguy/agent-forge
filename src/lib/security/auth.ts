@@ -192,12 +192,18 @@ export function requireAuth(
   handler: (req: AuthenticatedRequest, res: NextApiResponse) => void | Promise<void>,
 ): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
-    // Dev mode: skip auth if Supabase not configured
+    // Dev mode: skip auth if Supabase not configured AND in development
     if (!SUPABASE_CONFIGURED) {
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(503).json({
+          error: 'Service Unavailable',
+          message: 'Authentication service is not configured.',
+        });
+      }
       const devSession: AuthSession = {
         userId: 'dev-user',
         email: 'dev@localhost',
-        role: 'admin',
+        role: 'member',
         expiresAt: new Date(Date.now() + 86400_000).toISOString(),
       };
       (req as AuthenticatedRequest).session = devSession;

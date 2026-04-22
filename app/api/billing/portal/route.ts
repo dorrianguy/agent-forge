@@ -128,9 +128,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parse optional return URL from request body
+    // Parse optional return URL from request body with open-redirect protection
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://agent-forge.app';
     const body = await request.json().catch(() => ({}));
-    const returnUrl = body.returnUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://agent-forge.app'}/billing`;
+    let returnUrl = `${appUrl}/billing`;
+
+    if (body.returnUrl) {
+      try {
+        const parsed = new URL(body.returnUrl);
+        const allowed = new URL(appUrl);
+        // Only allow return URLs on the same origin
+        if (parsed.origin === allowed.origin) {
+          returnUrl = body.returnUrl;
+        } else {
+          logger.warn('Blocked open redirect attempt', { returnUrl: body.returnUrl, userId: user.id });
+        }
+      } catch {
+        // Invalid URL — use default
+      }
+    }
 
     // Create a Stripe Customer Portal session
     const portalSession = await stripe.billingPortal.sessions.create({

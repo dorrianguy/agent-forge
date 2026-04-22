@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { chunkText, generateEmbeddingsBatch, estimateTokens } from '@/lib/embeddings';
 import { logger } from '@/lib/logger';
 import type { Document, Chunk, DocumentType, ChunkingConfig } from '@/lib/knowledge-types';
 
+async function requireAuth() {
+  const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() { return cookieStore.getAll(); },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
 // POST: Upload and process a new document
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const contentType = request.headers.get('content-type') || '';
     
     let documentData: {
@@ -149,6 +178,11 @@ export async function POST(request: NextRequest) {
 // PUT: Process document (chunk, embed, or rechunk)
 export async function PUT(request: NextRequest) {
   try {
+    const user = await requireAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { documentId, action, chunkingConfig } = body;
     
@@ -253,6 +287,11 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a document
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await requireAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get('documentId');
     

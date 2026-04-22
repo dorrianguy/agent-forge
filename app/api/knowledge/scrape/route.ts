@@ -1,6 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import type { ScrapedPage } from '@/lib/knowledge-types';
+
+// SSRF protection: block private/reserved IP ranges
+const BLOCKED_IP_PATTERNS = [
+  /^127\./,                    // loopback
+  /^10\./,                     // private class A
+  /^172\.(1[6-9]|2\d|3[01])\./, // private class B
+  /^192\.168\./,               // private class C
+  /^169\.254\./,               // link-local / cloud metadata
+  /^0\./,                      // current network
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // carrier-grade NAT
+  /^::1$/,                     // IPv6 loopback
+  /^fc00:/i,                   // IPv6 unique local
+  /^fe80:/i,                   // IPv6 link-local
+];
+
+function isBlockedUrl(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+
+  // Block localhost variants
+  if (hostname === 'localhost' || hostname === '[::1]') return true;
+
+  // Block IP addresses in private ranges
+  for (const pattern of BLOCKED_IP_PATTERNS) {
+    if (pattern.test(hostname)) return true;
+  }
+
+  // Block non-HTTP(S) schemes
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return true;
+
+  return false;
+}
+
+async function requireAuth() {
+  const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() { return cookieStore.getAll(); },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
 
 // Simple HTML to text extraction
 function extractTextFromHtml(html: string): string {
@@ -63,9 +118,16 @@ function extractLinks(html: string, baseUrl: string): string[] {
   return Array.from(new Set(links)); // Remove duplicates
 }
 
-// Fetch a single page
+// Fetch a single page (with SSRF protection)
 async function fetchPage(url: string, depth: number): Promise<ScrapedPage | null> {
   try {
+    // SSRF protection: validate URL before fetching
+    const parsedUrl = new URL(url);
+    if (isBlockedUrl(parsedUrl)) {
+      logger.warn('Blocked SSRF attempt', { url });
+      return null;
+    }
+
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; AgentForge/1.0; +https://agent-forge.app)',
@@ -110,16 +172,22 @@ async function fetchPage(url: string, depth: number): Promise<ScrapedPage | null
 // POST: Scrape website
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    const user = await requireAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { url, depth = 1, maxPages = 10, includePaths, excludePaths } = body;
-    
+
     if (!url) {
       return NextResponse.json(
         { error: 'URL is required' },
         { status: 400 }
       );
     }
-    
+
     // Validate URL
     let baseUrl: URL;
     try {
@@ -128,6 +196,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid URL' },
         { status: 400 }
+      );
+    }
+
+    // SSRF protection: block private/internal URLs
+    if (isBlockedUrl(baseUrl)) {
+      return NextResponse.json(
+        { error: 'URL not allowed: private or internal addresses are blocked' },
+        { status: 403 }
       );
     }
     
@@ -191,12 +267,14 @@ export async function POST(request: NextRequest) {
 
 // OPTIONS: Handle CORS preflight
 export async function OPTIONS() {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://agent-forge.app';
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }
