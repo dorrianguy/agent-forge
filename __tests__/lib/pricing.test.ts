@@ -11,7 +11,7 @@ describe('Pricing Configuration', () => {
   const { plans, annual_discount, voice_overage } = config.pricing;
 
   describe('Plan Structure', () => {
-    const planNames = ['starter', 'pro', 'scale', 'enterprise'] as const;
+    const planNames = ['starter', 'professional', 'enterprise'] as const;
 
     it('has all expected plans', () => {
       for (const plan of planNames) {
@@ -35,23 +35,20 @@ describe('Pricing Configuration', () => {
     });
 
     it('plans are in ascending price order', () => {
-      expect(plans.starter.price).toBeLessThan(plans.pro.price);
-      expect(plans.pro.price).toBeLessThan(plans.scale.price);
-      expect(plans.scale.price).toBeLessThan(plans.enterprise.price);
+      expect(plans.starter.price).toBeLessThan(plans.professional.price);
+      expect(plans.professional.price).toBeLessThan(plans.enterprise.price);
     });
 
     it('agent limits increase with plan tier', () => {
       expect(plans.starter.agents).toBeGreaterThan(0);
-      expect(plans.pro.agents).toBeGreaterThan(plans.starter.agents);
-      // Scale and enterprise use -1 for unlimited
-      expect(plans.scale.agents).toBe(-1);
+      expect(plans.professional.agents).toBeGreaterThan(plans.starter.agents);
+      // Enterprise uses -1 for unlimited
       expect(plans.enterprise.agents).toBe(-1);
     });
 
     it('credits increase with plan tier', () => {
       expect(plans.starter.credits_included).toBeGreaterThan(0);
-      expect(plans.pro.credits_included).toBeGreaterThan(plans.starter.credits_included);
-      expect(plans.scale.credits_included).toBeGreaterThan(plans.pro.credits_included);
+      expect(plans.professional.credits_included).toBeGreaterThan(plans.starter.credits_included);
       // Enterprise is unlimited
       expect(plans.enterprise.credits_included).toBe(-1);
     });
@@ -63,9 +60,8 @@ describe('Pricing Configuration', () => {
     });
 
     it('credit overage rate decreases with higher plans', () => {
-      expect(plans.starter.credit_overage_rate).toBeGreaterThan(plans.pro.credit_overage_rate);
-      expect(plans.pro.credit_overage_rate).toBeGreaterThan(plans.scale.credit_overage_rate);
-      expect(plans.enterprise.credit_overage_rate).toBe(0);
+      expect(plans.starter.credit_overage_rate).toBeGreaterThan(plans.professional.credit_overage_rate);
+      expect(plans.professional.credit_overage_rate).toBeGreaterThan(plans.enterprise.credit_overage_rate);
     });
   });
 
@@ -81,10 +77,10 @@ describe('Pricing Configuration', () => {
 
     it('annual pricing calculation is correct', () => {
       const starterAnnual = plans.starter.price * (1 - annual_discount);
-      expect(starterAnnual).toBeCloseTo(31.2); // $39 * 0.80
+      expect(starterAnnual).toBeCloseTo(plans.starter.price * 0.8);
 
-      const proAnnual = plans.pro.price * (1 - annual_discount);
-      expect(proAnnual).toBeCloseTo(79.2); // $99 * 0.80
+      const professionalAnnual = plans.professional.price * (1 - annual_discount);
+      expect(professionalAnnual).toBeCloseTo(plans.professional.price * 0.8);
     });
   });
 
@@ -105,8 +101,7 @@ describe('Pricing Configuration', () => {
 
     it('voice minutes increase with plan tier', () => {
       expect(plans.starter.voice_minutes).toBeGreaterThan(0);
-      expect(plans.pro.voice_minutes).toBeGreaterThan(plans.starter.voice_minutes);
-      expect(plans.scale.voice_minutes).toBeGreaterThan(plans.pro.voice_minutes);
+      expect(plans.professional.voice_minutes).toBeGreaterThan(plans.starter.voice_minutes);
       expect(plans.enterprise.voice_minutes).toBe(-1); // unlimited
     });
   });
@@ -138,9 +133,8 @@ describe('Pricing Configuration', () => {
 
     it('concurrent call limits match plan tiers', () => {
       expect(voice.limits.max_concurrent_calls_starter).toBe(1);
-      expect(voice.limits.max_concurrent_calls_pro).toBeGreaterThan(voice.limits.max_concurrent_calls_starter);
-      expect(voice.limits.max_concurrent_calls_scale).toBeGreaterThan(voice.limits.max_concurrent_calls_pro);
-      expect(voice.limits.max_concurrent_calls_enterprise).toBeGreaterThanOrEqual(voice.limits.max_concurrent_calls_scale);
+      expect(voice.limits.max_concurrent_calls_professional).toBeGreaterThan(voice.limits.max_concurrent_calls_starter);
+      expect(voice.limits.max_concurrent_calls_enterprise).toBeGreaterThanOrEqual(voice.limits.max_concurrent_calls_professional);
     });
   });
 });

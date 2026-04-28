@@ -85,17 +85,12 @@ export async function getProfile(): Promise<Profile | null> {
   if (!user) return null;
 
   const { data, error } = await getSupabase()
-    .from('user_profiles')
+    .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
   if (error) throw error;
-
-  // Map subscription_tier to plan for backward compatibility
-  if (data) {
-    return { ...data, plan: data.subscription_tier || 'free' };
-  }
   return data;
 }
 
@@ -104,7 +99,7 @@ export async function updateProfile(updates: Partial<Profile>) {
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await getSupabase()
-    .from('user_profiles')
+    .from('profiles')
     .update(updates)
     .eq('id', user.id)
     .select()
