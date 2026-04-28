@@ -172,7 +172,7 @@ export const paginationWithAllowedSorts = (allowed: string[]) =>
 // BILLING
 // ============================================================
 
-export const VALID_PLANS = ['starter', 'pro', 'scale', 'enterprise'] as const;
+export const VALID_PLANS = ['free', 'starter', 'professional', 'enterprise'] as const;
 export const PlanSchema = z.enum(VALID_PLANS);
 
 // ============================================================

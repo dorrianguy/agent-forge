@@ -60,11 +60,6 @@ export async function DELETE(request: NextRequest) {
 
     // Delete user profile
     await adminClient
-      .from('user_profiles')
-      .delete()
-      .eq('id', user.id);
-
-    await adminClient
       .from('profiles')
       .delete()
       .eq('id', user.id);
