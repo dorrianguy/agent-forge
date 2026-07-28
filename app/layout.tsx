@@ -3,6 +3,7 @@ import '../src/styles/animations.css';
 import './globals.css';
 import NativeAppShell from '@/components/NativeAppShell';
 import NativeInit from '@/components/native-init';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: {
@@ -132,6 +133,7 @@ export default function RootLayout({
       <body className="bg-slate-950">
         <NativeInit />
         <NativeAppShell>{children}</NativeAppShell>
+        <Analytics />
       </body>
     </html>
   );
