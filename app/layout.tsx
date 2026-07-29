@@ -3,7 +3,7 @@ import '../src/styles/animations.css';
 import './globals.css';
 import NativeAppShell from '@/components/NativeAppShell';
 import NativeInit from '@/components/native-init';
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: {
