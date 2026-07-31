@@ -479,14 +479,15 @@ describe('validateIdParam', () => {
 
 describe('isValidPlan', () => {
   it('accepts valid plans', () => {
+    expect(isValidPlan('free')).toBe(true);
     expect(isValidPlan('starter')).toBe(true);
-    expect(isValidPlan('pro')).toBe(true);
-    expect(isValidPlan('scale')).toBe(true);
+    expect(isValidPlan('professional')).toBe(true);
     expect(isValidPlan('enterprise')).toBe(true);
   });
 
   it('rejects invalid plans', () => {
-    expect(isValidPlan('free')).toBe(false);
+    expect(isValidPlan('pro')).toBe(false);
+    expect(isValidPlan('scale')).toBe(false);
     expect(isValidPlan('mega')).toBe(false);
     expect(isValidPlan('')).toBe(false);
   });

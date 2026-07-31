@@ -99,16 +99,14 @@ export function paginationWithSort(
 // Billing
 // ============================================================
 
-export const VALID_PLANS = ['starter', 'pro', 'scale', 'enterprise'] as const;
+export const VALID_PLANS = ['free', 'starter', 'professional', 'enterprise'] as const;
 export type PlanType = (typeof VALID_PLANS)[number];
 
 export const PlanSchema = z.enum(VALID_PLANS);
 
-export const PLAN_AGENT_LIMITS: Record<string, number> = {
-  starter: 3,
-  pro: 15,
-  scale: Infinity,
-  enterprise: Infinity,
-  professional: 5, // Legacy plan
+export const PLAN_AGENT_LIMITS: Record<PlanType, number> = {
   free: 0,
+  starter: 1,
+  professional: 5,
+  enterprise: Infinity,
 };

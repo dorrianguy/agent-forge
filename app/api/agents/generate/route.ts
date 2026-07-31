@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rateLimit';
 import { escalatingCall, ESCALATION_PRESETS } from '@/lib/model-escalation';
 import { GeneratedAgentConfigSchema, zodToToolSchema, formatZodErrors } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
@@ -33,25 +33,15 @@ export async function POST(request: NextRequest) {
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
     'unknown';
-  const { allowed, remaining, resetAt } = checkRateLimit(
-    `generate:${ip}`,
-    RATE_LIMIT_MAX,
-    RATE_LIMIT_WINDOW,
-  );
+  const rateLimitResult = checkRateLimit(`generate:${ip}`, {
+    maxRequests: RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW,
+  });
 
-  if (!allowed) {
-    const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { error: 'Rate limit exceeded. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(retryAfter),
-          'X-RateLimit-Limit': String(RATE_LIMIT_MAX),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': String(Math.ceil(resetAt / 1000)),
-        },
-      },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) },
     );
   }
 

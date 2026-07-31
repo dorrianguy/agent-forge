@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Bot, MessageSquare, BarChart3, Star, Plus, X,
-  Settings, Activity, Clock, Sparkles, Copy,
-  Check, Play, Pause, LogOut, CreditCard
+  Settings, Activity, Clock, Sparkles,
+  Play, Pause, LogOut, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -39,7 +39,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState('agents');
-  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Check auth and load data
@@ -100,11 +99,6 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  const copyEmbedCode = (agentId: string) => {
-    navigator.clipboard.writeText(`<script src="https://agent-forge.app/widget/${agentId}"></script>`);
-    setCopiedEmbed(true);
-    setTimeout(() => setCopiedEmbed(false), 2000);
-  };
 
   const toggleAgentStatus = async (agentId: string) => {
     const agent = agents.find(a => a.id === agentId);
@@ -406,20 +400,15 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                {/* Embed Code */}
+                {/* Test agent (embeddable widget shipping soon) */}
                 <div className="mb-6">
-                  <label className="text-white/60 text-sm mb-2 block">Embed Code</label>
-                  <div className="relative">
-                    <pre className="p-4 rounded-xl bg-black/30 text-xs text-white/70 overflow-x-auto border border-white/5">
-{`<script src="https://agent-forge.app/widget/${selectedAgent.id}"></script>`}
-                    </pre>
-                    <button
-                      onClick={() => copyEmbedCode(selectedAgent.id)}
-                      className="absolute top-2 right-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                    >
-                      {copiedEmbed ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/60" />}
-                    </button>
-                  </div>
+                  <label className="text-white/60 text-sm mb-2 block">Try it</label>
+                  <Link
+                    href={`/dashboard/test?agent=${selectedAgent.id}`}
+                    className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition text-sm text-white/80"
+                  >
+                    Open the test chat to talk to this agent. Embeddable widget coming soon.
+                  </Link>
                 </div>
 
                 <div className="flex gap-3">

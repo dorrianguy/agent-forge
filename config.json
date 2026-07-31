@@ -31,8 +31,8 @@
           "Voice widget"
         ]
       },
-      "pro": {
-        "name": "Pro",
+      "professional": {
+        "name": "Professional",
         "price": 79,
         "interval": "month",
         "agents": 5,
@@ -54,33 +54,6 @@
           "API access",
           "Batch calling campaigns",
           "Post-call analysis"
-        ]
-      },
-      "scale": {
-        "name": "Scale",
-        "price": 199,
-        "interval": "month",
-        "agents": -1,
-        "voice_agents": -1,
-        "voice_minutes": 2000,
-        "phone_numbers": -1,
-        "concurrent_calls": 20,
-        "credits_included": 25000,
-        "credit_overage_rate": 0.005,
-        "features": [
-          "Unlimited AI Agents",
-          "100,000 conversations/month",
-          "2,000 voice minutes/month",
-          "Unlimited phone numbers",
-          "20 concurrent calls",
-          "Advanced analytics",
-          "Priority support",
-          "All integrations",
-          "Custom branding",
-          "API access",
-          "Batch calling campaigns",
-          "Post-call analysis",
-          "Team collaboration"
         ]
       },
       "enterprise": {
@@ -240,8 +213,6 @@
     },
     "limits": {
       "max_concurrent_calls_starter": 1,
-      "max_concurrent_calls_pro": 5,
-      "max_concurrent_calls_scale": 20,
       "max_concurrent_calls_professional": 5,
       "max_concurrent_calls_enterprise": 50
     }

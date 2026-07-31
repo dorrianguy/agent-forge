@@ -132,27 +132,21 @@ describe('Agent Validation', () => {
       expect(checkPlanLimit('free', 0)).toEqual({ allowed: false, maxAgents: 0 });
     });
 
-    it('allows starter plan to create 3 agents', () => {
-      expect(checkPlanLimit('starter', 0)).toEqual({ allowed: true, maxAgents: 3 });
-      expect(checkPlanLimit('starter', 2)).toEqual({ allowed: true, maxAgents: 3 });
+    it('allows starter plan to create 1 agent', () => {
+      expect(checkPlanLimit('starter', 0)).toEqual({ allowed: true, maxAgents: 1 });
     });
 
     it('blocks starter plan at limit', () => {
-      expect(checkPlanLimit('starter', 3)).toEqual({ allowed: false, maxAgents: 3 });
+      expect(checkPlanLimit('starter', 1)).toEqual({ allowed: false, maxAgents: 1 });
     });
 
-    it('allows pro plan up to 15 agents', () => {
-      expect(checkPlanLimit('pro', 0)).toEqual({ allowed: true, maxAgents: 15 });
-      expect(checkPlanLimit('pro', 14)).toEqual({ allowed: true, maxAgents: 15 });
+    it('allows professional plan up to 5 agents', () => {
+      expect(checkPlanLimit('professional', 0)).toEqual({ allowed: true, maxAgents: 5 });
+      expect(checkPlanLimit('professional', 4)).toEqual({ allowed: true, maxAgents: 5 });
     });
 
-    it('blocks pro plan at limit', () => {
-      expect(checkPlanLimit('pro', 15)).toEqual({ allowed: false, maxAgents: 15 });
-    });
-
-    it('scale plan allows unlimited agents', () => {
-      expect(checkPlanLimit('scale', 0)).toEqual({ allowed: true, maxAgents: Infinity });
-      expect(checkPlanLimit('scale', 500)).toEqual({ allowed: true, maxAgents: Infinity });
+    it('blocks professional plan at limit', () => {
+      expect(checkPlanLimit('professional', 5)).toEqual({ allowed: false, maxAgents: 5 });
     });
 
     it('allows enterprise unlimited agents', () => {

@@ -318,11 +318,15 @@ export default function DocsPage() {
               <SectionHeading
                 id="embed-widget"
                 icon={Code}
-                title="Embed Widget"
+                title="Embed Widget (Preview)"
                 description="Add your AI agent to any website with a single code snippet."
               />
 
               <div className="space-y-6">
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200/90 text-sm">
+                  Coming soon. The embed snippets below show the planned API. The widget script is not live yet — use the in-dashboard test chat for now.
+                </div>
+
                 <div className="p-6 rounded-2xl bg-white/5 border border-white/5">
                   <h3 className="text-lg font-semibold text-white mb-4">Quick Embed</h3>
                   <p className="text-white/60 mb-4">
